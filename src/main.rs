@@ -11,12 +11,12 @@ use std::intrinsics::*;
 use std::mem::MaybeUninit;
 use std::simd::*;
 
-const LANES: usize = 16;
+const LANES: usize = 8;
 const PRECISION: usize = 3;
 const COS: bool = true;
 
 pub unsafe fn sin_fast_approx_bench(x: Simd<f32, LANES>) -> Simd<f32, LANES> {
-    wrap_auto_vectorize::<LANES, f32>(sin_fast_approx::<PRECISION, COS>, x)
+    wrap_auto_vectorize!(sin_fast_approx::<PRECISION, COS>, LANES, x)
 }
 
 /// Inputs valid between [-2^23, 2^23].
@@ -76,22 +76,21 @@ pub unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x: f32) -
     f32::from_bits(output.to_bits() ^ parity_sign)
 }
 
-#[inline(always)]
-pub unsafe fn wrap_auto_vectorize<const LANES: usize, T: SimdElement>(
-    func: unsafe fn(T) -> T,
-    x: Simd<T, LANES>,
-) -> Simd<T, LANES>
-where
-    LaneCount<LANES>: SupportedLaneCount,
-{
-    let mut vec_uninit: MaybeUninit<Simd<T, LANES>> = MaybeUninit::uninit();
-    let vec_ptr = vec_uninit.as_mut_ptr();
+#[macro_export]
+macro_rules! wrap_auto_vectorize {
+    ($func:expr, $lanes:expr, $($x:expr),+) => {
+        {
+            let mut vec_uninit: MaybeUninit<Simd<_, $lanes>> = MaybeUninit::uninit();
+            let vec_ptr = vec_uninit.as_mut_ptr();
 
-    for i in 0..LANES {
-        (*vec_ptr)[i] = func(x[i]);
+            for i in 0..LANES {
+                (*vec_ptr)[i] = $func($($x[i]),+);
+            }
+
+            #[allow(unused_unsafe)]
+            unsafe { vec_uninit.assume_init() }
+        }
     }
-
-    vec_uninit.assume_init()
 }
 
 /// this will be run despite it not being public.
@@ -102,7 +101,7 @@ where
 /// --cfg print_error
 /// --cfg print_cycles
 #[allow(dead_code)]
-fn main() {
+pub fn main() {
     const STEPS: usize = 1000; //1 << 24;
     const WARMUP_ITRS: usize = 1 << 24;
     const START: f32 = 0.0;
@@ -115,7 +114,7 @@ fn main() {
     println!("Count: {STEPS}");
 
     #[allow(unused_mut)]
-    let mut vec = Simd::splat(SLICE).mul_add(
+        let mut vec = Simd::<f32, LANES>::splat(SLICE).mul_add(
         Simd::from_slice(&(0..LANES).collect::<Box<[usize]>>()).cast::<f32>(),
         Simd::splat(START),
     );
@@ -124,9 +123,10 @@ fn main() {
         if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
             for _i in 0..WARMUP_ITRS {
                 unsafe {
-                    black_box(wrap_auto_vectorize::<LANES, f32>(
+                    black_box(wrap_auto_vectorize!(
                         sin_fast_approx::<PRECISION, COS>,
-                        black_box(vec),
+                        LANES,
+                        black_box(vec)
                     ));
                 }
             }
@@ -136,16 +136,16 @@ fn main() {
     }
 
     #[allow(unused_variables)]
-    let mut total_error = 0.0_f64;
+        let mut total_error = 0.0_f64;
     let mut max_error = 0.0_f64;
     #[allow(unused_variables)]
-    let mut built_string: String;
+        let mut built_string: String;
     #[cfg(print_values)]
     {
         built_string = String::with_capacity(STEPS * 16);
     }
     #[allow(unused_variables, unused_mut)]
-    let mut cycles_1: u64;
+        let mut cycles_1: u64;
     #[cfg(all(print_cycles, any(target_arch = "x86", target_arch = "x86_64")))]
     unsafe {
         let mut _unused = 0_u32;
@@ -154,9 +154,10 @@ fn main() {
 
     for _i in 0..ITRS {
         let result = unsafe {
-            black_box(wrap_auto_vectorize::<LANES, f32>(
+            black_box(wrap_auto_vectorize!(
                 sin_fast_approx::<PRECISION, COS>,
-                black_box(vec),
+                LANES,
+                black_box(vec)
             ))
         };
 
