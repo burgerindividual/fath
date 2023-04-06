@@ -18,7 +18,7 @@ macro_rules! wrap_auto_vectorize {
     }
 }
 
-impl FastApprox for Simd<f32, LANES>
+impl<const LANES: usize> FastApprox for Simd<f32, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
 {
