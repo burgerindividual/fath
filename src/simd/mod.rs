@@ -9,7 +9,11 @@ macro_rules! wrap_auto_vectorize {
             let vec_ptr = vec_uninit.as_mut_ptr();
 
             for i in 0..$lanes {
-                (*vec_ptr)[i] = $func($($x[i]),+);
+                let evaluated = $func($($x[i]),+);
+                #[allow(unused_unsafe)]
+                unsafe {
+                    (*vec_ptr)[i] = evaluated;
+                }
             }
 
             #[allow(unused_unsafe)]
