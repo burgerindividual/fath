@@ -8,8 +8,8 @@ use std::arch::x86::*;
 use std::arch::x86_64::*;
 use std::f32::consts::*;
 use std::intrinsics::*;
-use std::mem::MaybeUninit;
 use std::simd::*;
+use simd::*;
 
 const LANES: usize = 8;
 const PRECISION: usize = 3;
@@ -19,20 +19,17 @@ pub unsafe fn sin_fast_approx_bench(x: Simd<f32, LANES>) -> Simd<f32, LANES> {
     wrap_auto_vectorize!(sin_fast_approx::<PRECISION, COS>, LANES, x)
 }
 
-/// Inputs valid between [-2^23, 2^23].
-///
 /// Precision can set between 0 and 3, with 0 being the fastest and least
 /// precise, and 3 being the slowest and most precise.
 ///
 /// Max Absolute Error Chart (from [-PI/2, PI/2]):
 /// ----------------
-/// | PRE | ERROR  |
-/// |-----|--------|
-/// |  0  | 2.8e-2 |
-/// |  1  | 6.0e-4 |
-/// |  2  | 6.8e-6 |
-/// |  3  | 1.9e-7 |
-/// ----------------
+/// | PRECISION | ERROR  |
+/// | :-------- | :----- |
+/// | 0         | 2.8e-2 |
+/// | 1         | 6.0e-4 |
+/// | 2         | 6.8e-6 |
+/// | 3         | 1.9e-7 |
 ///
 /// If COS is set to true, the period is offset by PI/2.
 ///
@@ -43,6 +40,10 @@ pub unsafe fn sin_fast_approx_bench(x: Simd<f32, LANES>) -> Simd<f32, LANES> {
 ///
 /// The coefficient constants were derived from the constants defined here:
 /// https://publik-void.github.io/sin-cos-approximations/#_cos_abs_error_minimized_degree_2
+///
+/// # Safety
+/// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
+/// machine characteristics, and should not be used with equality testing.
 #[inline(always)]
 pub unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x: f32) -> f32 {
     let pi_multiples = fadd_fast(
@@ -68,29 +69,12 @@ pub unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x: f32) -
     };
 
     let mut output = coeffs[0];
-    for i in 1..coeffs.len() {
-        output = fadd_fast(fmul_fast(fraction_squared, output), coeffs[i]);
+    for &coeff in &coeffs[1..] {
+        output = fadd_fast(fmul_fast(fraction_squared, output), coeff);
     }
 
     let parity_sign = (rounded_multiples.to_int_unchecked::<i32>() as u32) << 31_u32;
     f32::from_bits(output.to_bits() ^ parity_sign)
-}
-
-#[macro_export]
-macro_rules! wrap_auto_vectorize {
-    ($func:expr, $lanes:expr, $($x:expr),+) => {
-        {
-            let mut vec_uninit: MaybeUninit<Simd<_, $lanes>> = MaybeUninit::uninit();
-            let vec_ptr = vec_uninit.as_mut_ptr();
-
-            for i in 0..LANES {
-                (*vec_ptr)[i] = $func($($x[i]),+);
-            }
-
-            #[allow(unused_unsafe)]
-            unsafe { vec_uninit.assume_init() }
-        }
-    }
 }
 
 /// this will be run despite it not being public.
@@ -136,16 +120,16 @@ pub fn main() {
     }
 
     #[allow(unused_variables)]
-        let mut total_error = 0.0_f64;
+    let mut total_error = 0.0_f64;
     let mut max_error = 0.0_f64;
     #[allow(unused_variables)]
-        let mut built_string: String;
+    let mut built_string: String;
     #[cfg(print_values)]
     {
         built_string = String::with_capacity(STEPS * 16);
     }
     #[allow(unused_variables, unused_mut)]
-        let mut cycles_1: u64;
+    let mut cycles_1: u64;
     #[cfg(all(print_cycles, any(target_arch = "x86", target_arch = "x86_64")))]
     unsafe {
         let mut _unused = 0_u32;
