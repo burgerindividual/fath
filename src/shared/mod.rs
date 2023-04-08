@@ -6,11 +6,11 @@ pub trait FastApprox {
     unsafe fn cos_fast_approx<const PRECISION: usize>(self) -> Self;
 }
 
+/// # Inputs
 /// Precision can set between 0 and 3, with 0 being the fastest and least
-/// precise, and 3 being the slowest and most precise.
+/// precise, and 3 being the slowest and most precise.<br>
+/// #### Max Absolute Error Chart (from [-PI/2, PI/2]):
 ///
-/// Max Absolute Error Chart (from [-PI/2, PI/2]):
-/// ----------------
 /// | PRECISION | ERROR  |
 /// | :-------- | :----- |
 /// | 0         | 2.9e-2 |
@@ -20,6 +20,11 @@ pub trait FastApprox {
 ///
 /// If COS is set to true, the period is offset by PI/2.
 ///
+/// # Safety
+/// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
+/// machine characteristics, and should not be used with equality testing.
+///
+/// # Notes
 /// As the inputs get further from 0, the accuracy gets continuously worse
 /// due to nature of the fast range reduction.
 ///
@@ -27,10 +32,6 @@ pub trait FastApprox {
 ///
 /// The coefficient constants were derived from the constants defined here:
 /// https://publik-void.github.io/sin-cos-approximations/#_cos_abs_error_minimized_degree_2
-///
-/// # Safety
-/// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
-/// machine characteristics, and should not be used with equality testing.
 #[inline(always)]
 pub(crate) unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x: f32) -> f32 {
     let pi_multiples = fadd_fast(
