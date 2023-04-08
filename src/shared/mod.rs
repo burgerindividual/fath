@@ -13,10 +13,10 @@ pub trait FastApprox {
 /// ----------------
 /// | PRECISION | ERROR  |
 /// | :-------- | :----- |
-/// | 0         | 2.8e-2 |
+/// | 0         | 2.9e-2 |
 /// | 1         | 6.0e-4 |
-/// | 2         | 6.8e-6 |
-/// | 3         | 1.9e-7 |
+/// | 2         | 6.9e-6 |
+/// | 3         | 2.7e-7 |
 ///
 /// If COS is set to true, the period is offset by PI/2.
 ///

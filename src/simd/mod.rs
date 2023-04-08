@@ -1,7 +1,7 @@
-#[macro_export]
 use crate::shared::*;
-use core::simd::Simd;
+use core::simd::{LaneCount, Simd, SupportedLaneCount};
 
+#[macro_export]
 macro_rules! wrap_auto_vectorize {
     ($func:expr, $lanes:expr, $($x:expr),+) => {
         {
