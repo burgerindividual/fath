@@ -201,9 +201,8 @@ where
     // -1 if result value rounded above initial value, otherwise 0
     let greater_modifier = x_converted.simd_gt(x_signed).to_int();
 
-    let exponent = (((x_float.to_bits().cast::<i32>() + greater_modifier).cast::<u32>()
-        << Simd::splat(1))
-        >> Simd::splat(24))
+    let exponent = ((x_float.to_bits().cast::<i32>() + greater_modifier).cast::<u32>()
+        >> Simd::splat(23))
         - Simd::splat(127);
 
     unsigned_mask.select(Simd::splat(UNSIGNED_LOG2), exponent)
