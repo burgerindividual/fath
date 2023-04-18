@@ -1,4 +1,4 @@
-use crate::shared::FastApprox;
+use crate::shared::FastApproxFloat;
 use core::f32::consts::FRAC_PI_2;
 use core::ops::Range;
 use core::simd::{LaneCount, Simd, SimdFloat, SimdPartialOrd, SupportedLaneCount};

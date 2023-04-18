@@ -1,9 +1,25 @@
 use core::f32::consts::*;
 use core::intrinsics::*;
 
-pub trait FastApprox {
+pub trait FastApproxFloat {
     unsafe fn sin_fast_approx<const PRECISION: usize>(self) -> Self;
     unsafe fn cos_fast_approx<const PRECISION: usize>(self) -> Self;
+
+    unsafe fn log_fast_approx<const PRECISION: usize>(self, base: Self) -> Self;
+    unsafe fn log_fast_approx_const_base<const PRECISION: usize>(self, base: Self) -> Self;
+}
+
+// TODO: figure out how to make these const generics type self
+
+pub trait FastApproxInt {
+    unsafe fn ilog_fast_approx<const BASE: u32>(self) -> Self;
+}
+
+pub trait FastExactInt {
+    fn ilog<const BASE: u32>(self) -> Self;
+    unsafe fn ilog_unchecked<const BASE: u32>(self) -> Self;
+
+    fn ipow<const COEFF: u32>(self) -> Self;
 }
 
 /// # Inputs
@@ -63,4 +79,58 @@ pub(crate) unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x:
 
     let parity_sign = (rounded_multiples.to_int_unchecked::<i32>() as u32) << 31_u32;
     f32::from_bits(output.to_bits() ^ parity_sign)
+}
+
+#[inline(always)]
+pub(crate) unsafe fn log_fast_approx_const_base<const PRECISION: usize>(x: f32, base: f32) -> f32 {
+    fdiv_fast(
+        log2_fast_approx::<PRECISION>(x),
+        log2f64(base as f64) as f32, // f64::log2 not included in core, have to use intrinsic
+    )
+}
+
+#[inline(always)]
+pub(crate) unsafe fn log_fast_approx<const PRECISION: usize>(x: f32, base: f32) -> f32 {
+    fdiv_fast(
+        log2_fast_approx::<PRECISION>(x),
+        log2_fast_approx::<PRECISION>(base),
+    )
+}
+
+#[inline(always)]
+unsafe fn log2_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+    let mantissa = f32::from_bits(
+        x.to_bits() & 0b00111111111111111111111111111111_u32
+            | 0b00111111100000000000000000000000_u32,
+    );
+
+    let coeffs: &[f32] = match PRECISION {
+        0 => &[-0.34484842_f32, 2.0246658_f32, -1.6748776_f32],
+        1 => &[0.15824871_f32, -1.051875_f32, 3.0478842_f32, -2.1536207_f32],
+        2 => &[
+            -0.081615806_f32,
+            0.6451424_f32,
+            -2.120675_f32,
+            4.070091_f32,
+            -2.5128546_f32,
+        ],
+        3 => &[
+            0.04487361_f32,
+            -0.4165637_f32,
+            1.6311488_f32,
+            -3.550793_f32,
+            5.091711_f32,
+            -2.800364_f32,
+        ],
+        _ => unreachable!(),
+    };
+
+    let mut mant_log2 = coeffs[0];
+    for i in 1..coeffs.len() {
+        mant_log2 = fadd_fast(fmul_fast(mantissa, mant_log2), coeffs[i]);
+    }
+
+    let exponent = (((x.to_bits() << 1_u32) >> 24_u32) as i32 - 127_i32) as f32;
+
+    exponent + mant_log2
 }
