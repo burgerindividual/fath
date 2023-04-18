@@ -52,6 +52,7 @@ impl<const LANES: usize> FastApproxInt for Simd<u32, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
 {
+    #[inline(always)]
     unsafe fn ilog_fast_approx<const BASE: u32>(self) -> Self {
         ilog_fast_approx::<LANES, BASE>(self)
     }
@@ -61,19 +62,23 @@ impl<const LANES: usize> FastExactInt for Simd<u32, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
 {
+    #[inline(always)]
     fn ilog<const BASE: u32>(self) -> Self {
         ilog::<LANES, BASE>(self)
     }
 
+    #[inline(always)]
     unsafe fn ilog_unchecked<const BASE: u32>(self) -> Self {
         ilog_unchecked::<LANES, BASE>(self)
     }
 
+    #[inline(always)]
     fn ipow<const COEFF: u32>(self) -> Self {
         ipow::<LANES, COEFF>(self)
     }
 }
 
+#[inline(always)]
 pub(crate) fn ilog<const LANES: usize, const BASE: u32>(x: Simd<u32, LANES>) -> Simd<u32, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
@@ -160,6 +165,7 @@ where
     }
 }
 
+#[inline(always)]
 pub(crate) unsafe fn ilog_fast_approx<const LANES: usize, const BASE: u32>(
     x: Simd<u32, LANES>,
 ) -> Simd<u32, LANES>
