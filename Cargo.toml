@@ -3,6 +3,10 @@ name = "fast_math"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+num = "0.4.0"
+#fixed = "1.23.1"
+
 [dev-dependencies]
 rand = "0.8.5"
 

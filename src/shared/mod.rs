@@ -1,3 +1,5 @@
+pub mod conv;
+
 use core::f32::consts::*;
 use core::intrinsics::*;
 
@@ -12,14 +14,14 @@ pub trait FastApproxFloat {
 // TODO: figure out how to make these const generics type self
 
 pub trait FastApproxInt {
-    unsafe fn ilog_fast_approx<const BASE: u32>(self) -> Self;
+    unsafe fn ilog_fast_approx<const BASE: u128>(self) -> Self;
 }
 
 pub trait FastExactInt {
-    fn ilog<const BASE: u32>(self) -> Self;
-    unsafe fn ilog_unchecked<const BASE: u32>(self) -> Self;
+    fn ilog<const BASE: u128>(self) -> Self;
+    unsafe fn ilog_unchecked<const BASE: u128>(self) -> Self;
 
-    fn ipow<const COEFF: u32>(self) -> Self;
+    fn ipow<const COEFF: u128>(self) -> Self;
 }
 
 /// # Inputs

@@ -1,10 +1,11 @@
 #![feature(core_intrinsics, portable_simd)]
-#![feature(adt_const_params)]
 #![no_std]
 
-// #![cfg_attr(feature = "portable_simd", feature(portable_simd))]
+extern crate alloc;
+
 pub mod scalar;
 pub mod shared;
+// #![cfg_attr(feature = "portable_simd", feature(portable_simd))]
 pub mod simd;
 
 #[cfg(test)]
