@@ -2,23 +2,32 @@ use crate::shared::conv::*;
 use crate::shared::*;
 use core::intrinsics::log2f64;
 use core::simd::*;
+use num::bigint::{Sign, ToBigInt, ToBigUint};
+use num::{BigInt, BigRational, BigUint, Bounded, FromPrimitive, Integer};
 
 impl<const LANES: usize, T> FastApproxInt for Simd<T, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
-    Simd<T, LANES>: SimdOrd + SimdUint,
-    T: SimdElement + Unsigned<T>,
+    Simd<T, LANES>: SimdOrd + SimdUint + Integer,
+    T: SimdElement + Unsigned<T> + Bounded + FastExactInt + Integer + ToBigUint + From<BigUint>,
 {
     #[inline(always)]
     unsafe fn ilog_fast_approx<const BASE: u128>(self) -> Self {
-        let numerator: T = (T::MAX / (T::MAX.ilog2() + 1)) + 1;
-        let shift: T = numerator.ilog2();
+        let numerator: T = (T::max_value() / (T::max_value().ilog::<2>() + T::one())) + T::one();
+        let shift: T = numerator.ilog::<2>();
         // f64::log2 not included in core, have to use intrinsic.
         // TODO: figure out a better solution to get exact numbers with larger types
-        let log_2_base = log2f64(BASE as f64);
-        let multiplier: T = (numerator as f64 / log_2_base) as u32;
+        let log_2_base = BigRational::from_u128(BASE).unwrap();
+        let multiplier: T = (BigRational::from(BigInt::from_biguint(
+            Sign::Plus,
+            numerator.to_biguint().unwrap(),
+        )) / log_2_base)
+            .to_integer()
+            .to_biguint()
+            .unwrap()
+            .into(); // create custom trait FromBigUint
 
-        ((ilog2(self) + Simd::splat(1)) * Simd::splat(multiplier)) >> Simd::splat(shift)
+        ((ilog2(self) + Simd::splat(T::one())) * Simd::splat(multiplier)) >> Simd::splat(shift)
     }
 }
 

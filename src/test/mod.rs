@@ -1,4 +1,4 @@
-use crate::shared::FastApproxFloat;
+use crate::shared::*;
 use core::f32::consts::FRAC_PI_2;
 use core::ops::Range;
 use core::simd::{LaneCount, Simd, SimdFloat, SimdPartialOrd, SupportedLaneCount};
@@ -84,6 +84,9 @@ pub fn simd_error() {
             }
 
             let x = unsafe { vec_uninit.assume_init() };
+            unsafe {
+                Simd::splat(1u32).ilog_fast_approx();
+            }
 
             let approx_0 = unsafe { x.sin_fast_approx::<0>() };
             let approx_1 = unsafe { x.sin_fast_approx::<1>() };
