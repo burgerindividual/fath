@@ -1,23 +1,25 @@
 use crate::shared::conv::*;
+use crate::scalar::conv::*;
 use crate::shared::*;
 use core::intrinsics::log2f64;
 use core::simd::*;
+use core::ops::*;
 use num::bigint::{Sign, ToBigInt, ToBigUint};
 use num::{BigInt, BigRational, BigUint, Bounded, FromPrimitive, Integer};
+use f256::f256;
 
 impl<const LANES: usize, T> FastApproxInt for Simd<T, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
-    Simd<T, LANES>: SimdOrd + SimdUint + Integer,
-    T: SimdElement + Unsigned<T> + Bounded + FastExactInt + Integer + ToBigUint + From<BigUint>,
+    Simd<T, LANES>: SimdOrd + SimdUint + Add<Output = Self> + Mul<Output = Self>
+    + Shr<Output = Self>,
+    T: SimdElement + Unsigned + Bounded + FastExactInt + Integer,
 {
     #[inline(always)]
     unsafe fn ilog_fast_approx<const BASE: u128>(self) -> Self {
         let numerator: T = (T::max_value() / (T::max_value().ilog::<2>() + T::one())) + T::one();
         let shift: T = numerator.ilog::<2>();
-        // f64::log2 not included in core, have to use intrinsic.
-        // TODO: figure out a better solution to get exact numbers with larger types
-        let log_2_base = BigRational::from_u128(BASE).unwrap();
+        let log_2_base = f256::from(BASE).log2();
         let multiplier: T = (BigRational::from(BigInt::from_biguint(
             Sign::Plus,
             numerator.to_biguint().unwrap(),
@@ -34,12 +36,13 @@ where
 impl<const LANES: usize, T> FastExactInt for Simd<T, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
-    Simd<T, LANES>: SimdOrd + SimdUint,
-    T: SimdElement + Unsigned<T>,
+    Simd<T, LANES>: SimdOrd + SimdUint + FastApproxInt + Add<Output = Self> + Mul<Output = Self>
+    + Shr<Output = Self>,
+    T: SimdElement + Unsigned + Bounded + FastExactInt + Integer,
 {
     #[inline(always)]
     fn ilog<const BASE: u128>(self) -> Self {
-        assert!(!self.simd_eq(Simd::splat(0)).any(), "invalid input: 0");
+        assert!(!self.simd_eq(Simd::splat(T::zero())).any(), "invalid input: 0");
         unsafe { self.ilog_unchecked() }
     }
 
@@ -121,7 +124,7 @@ unsafe fn ilog2<const LANES: usize, T>(x: Simd<T, LANES>) -> Simd<T, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
     Simd<T, LANES>: SimdOrd + SimdUint,
-    T: SimdElement + Unsigned<T>,
+    T: SimdElement + Unsigned,
 {
     const UNSIGNED_LOG2: u32 = u32::BITS - 1;
     let safe_conv_max: i32 = f32::from_bits(((i32::MAX) as f32).to_bits() - 1) as i32;

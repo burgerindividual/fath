@@ -1,4 +1,9 @@
 use crate::shared::conv::*;
+use core::mem::*;
+
+// pub trait FromBigInt {
+//     fn from_bigint_trunc(x: BigInt) -> Self;
+// }
 
 macro_rules! signed_unsigned_impl {
     ($u:ty,$s:ty) => {
@@ -19,6 +24,27 @@ macro_rules! signed_unsigned_impl {
         }
     };
 }
+
+macro_rules! biguint_impl {
+    ($($u:ty),+) => {
+        $(
+            impl FromBigUint for $u {
+                fn from_biguint_trunc(x: BigUint) -> Self {
+                    let byte_array: [u8; size_of::<$u>()] = Default::default();
+                    let byte_vec = x.to_bytes_le();
+                    
+                    for i in 0..byte_vec.len().min(byte_array.len()) {
+                        byte_array[i] = byte_vec[i];
+                    }
+                    
+                    <$u>::from_le_bytes(byte_array)
+                }
+            }
+        )+
+    };
+}
+
+// biguint_impl! {u8, u16, u32, u64, u128}
 
 signed_unsigned_impl!(u8, i8);
 signed_unsigned_impl!(u16, i16);
