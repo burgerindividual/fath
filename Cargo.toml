@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 num = "0.4.0"
-f256 = "0.1.2"
+f128 = "0.2.9"
+#f256 = "0.1.2"
 #fixed = "1.23.1"
 
 [dev-dependencies]

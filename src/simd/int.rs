@@ -1,33 +1,30 @@
 use crate::shared::conv::*;
-use crate::scalar::conv::*;
 use crate::shared::*;
-use core::intrinsics::log2f64;
-use core::simd::*;
 use core::ops::*;
-use num::bigint::{Sign, ToBigInt, ToBigUint};
-use num::{BigInt, BigRational, BigUint, Bounded, FromPrimitive, Integer};
-use f256::f256;
+use core::simd::*;
+use f128::f128;
+use num::traits::real::Real;
+use num::{Bounded, FromPrimitive, Integer};
 
 impl<const LANES: usize, T> FastApproxInt for Simd<T, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
-    Simd<T, LANES>: SimdOrd + SimdUint + Add<Output = Self> + Mul<Output = Self>
-    + Shr<Output = Self>,
-    T: SimdElement + Unsigned + Bounded + FastExactInt + Integer,
+    Simd<T, LANES>: SimdOrd<Mask = Mask<T::Signed, LANES>>
+        + SimdUint
+        + Unsigned
+        + Add<Output = Self>
+        + Mul<Output = Self>
+        + Shr<Output = Self>
+        + Real,
+    T: SimdElement + Unsigned + Bounded + FastExactInt + Integer + From<f128>,
+    T::Signed: MaskElement,
+    f128: From<T>,
 {
     #[inline(always)]
     unsafe fn ilog_fast_approx<const BASE: u128>(self) -> Self {
         let numerator: T = (T::max_value() / (T::max_value().ilog::<2>() + T::one())) + T::one();
         let shift: T = numerator.ilog::<2>();
-        let log_2_base = f256::from(BASE).log2();
-        let multiplier: T = (BigRational::from(BigInt::from_biguint(
-            Sign::Plus,
-            numerator.to_biguint().unwrap(),
-        )) / log_2_base)
-            .to_integer()
-            .to_biguint()
-            .unwrap()
-            .into(); // create custom trait FromBigUint
+        let multiplier: T = (f128::from(numerator) / f128::from_u128(BASE).unwrap().log2()).into();
 
         ((ilog2(self) + Simd::splat(T::one())) * Simd::splat(multiplier)) >> Simd::splat(shift)
     }
@@ -36,14 +33,30 @@ where
 impl<const LANES: usize, T> FastExactInt for Simd<T, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
-    Simd<T, LANES>: SimdOrd + SimdUint + FastApproxInt + Add<Output = Self> + Mul<Output = Self>
-    + Shr<Output = Self>,
-    T: SimdElement + Unsigned + Bounded + FastExactInt + Integer,
+    Simd<T, LANES>: SimdOrd<Mask = Into<Mask<T::Signed, LANES>>>
+        + SimdUint
+        + Unsigned
+        + FastApproxInt
+        + Add<Output = Self>
+        + Mul<Output = Self>
+        + Shr<Output = Self>,
+    T: SimdElement
+        + Unsigned
+        + Bounded
+        + FastExactInt
+        + Integer
+        + From<f128>
+        + Into<f128>
+        + From<i8>,
+    T::Signed: MaskElement + Bounded + Into<u128>,
 {
     #[inline(always)]
     fn ilog<const BASE: u128>(self) -> Self {
-        assert!(!self.simd_eq(Simd::splat(T::zero())).any(), "invalid input: 0");
-        unsafe { self.ilog_unchecked() }
+        assert!(
+            !self.simd_eq(Simd::splat(T::zero())).any(),
+            "invalid input: 0"
+        );
+        unsafe { self.ilog_unchecked::<BASE>() }
     }
 
     #[inline(always)]
@@ -59,12 +72,12 @@ where
         } else {
             // for some reason, (i32::MAX as u32).ilog(base) emits horrible codegen.
             // this if statement patches it and has the same behavior.
-            let max_signed: T = if BASE > (T::Signed::MAX as u128) {
-                0
+            let max_signed: T = if BASE > T::Signed::max_value().into() {
+                T::zero()
             } else {
-                T::Signed::MAX.ilog(BASE as i32)
+                T::Signed::max_value().ilog(BASE as i32)
             };
-            let max_unsigned: T = T::MAX.ilog(BASE);
+            let max_unsigned: T = T::max_value().ilog(BASE);
 
             let x_signed = self.to_signed();
 
@@ -95,13 +108,12 @@ where
     #[inline(always)]
     fn ipow<const COEFF: u128>(self) -> Self {
         match COEFF {
-            0 => self
-                .simd_eq(Simd::splat(0))
-                .select(Simd::splat(1), Simd::splat(0)),
-            1 => Simd::splat(1),
-            2 => Simd::splat(2) << self,
+            0 => Mask::<T::Signed, LANES>::into(self.simd_eq(Simd::splat(T::zero())))
+                .select(Simd::splat(T::one()), Simd::splat(T::zero())),
+            1 => Simd::splat(T::one()),
+            2 => Simd::splat(2_i8).into() << self,
             _ => {
-                let bit_count = u32::MAX.ilog(COEFF).next_power_of_two().ilog2();
+                let bit_count = T::max_value().ilog(COEFF).next_power_of_two().ilog2();
 
                 let mut bit = 0b1;
                 let mut result = Simd::splat(1);
