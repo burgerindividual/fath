@@ -1,33 +1,30 @@
 use crate::shared::conv::*;
 use core::simd::*;
 
-macro_rules! signed_unsigned_impl {
-    ($u:ty,$s:ty) => {
-        impl<const LANES: usize, T> Unsigned<T> for Simd<$u, LANES>
-        where
-            LaneCount<LANES>: SupportedLaneCount,
-        {
-            type Signed = Simd<$s, LANES>;
+impl<T, const LANES: usize> Unsigned for Simd<T, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+    Simd<T::Signed, LANES>: Signed<Simd<T, LANES>>,
+    T: SimdElement + Unsigned,
+    T::Signed: SimdElement,
+{
+    type Signed = Simd<T::Signed, LANES>;
 
-            fn to_signed(self) -> Self::Signed {
-                self.cast::<$s>()
-            }
-        }
-
-        impl<const LANES: usize, T> Signed<T> for Simd<$s, LANES>
-        where
-            LaneCount<LANES>: SupportedLaneCount,
-        {
-            type Unsigned = Simd<$u, LANES>;
-
-            fn to_unsigned(self) -> Self::Unsigned {
-                self.cast::<$u>()
-            }
-        }
-    };
+    fn to_signed(self) -> Simd<T::Signed, LANES> {
+        self.cast::<T::Signed>()
+    }
 }
+        
+impl<T, const LANES: usize> Signed for Simd<T, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+    Simd<T::Unsigned, LANES>: Unsigned<Simd<T, LANES>>,
+    T: SimdElement + Signed,
+    T::Unsigned: SimdElement,
+{
+    type Unsigned = Simd<T::Unsigned, LANES>;
 
-signed_unsigned_impl!(u8, i8);
-signed_unsigned_impl!(u16, i16);
-signed_unsigned_impl!(u32, i32);
-signed_unsigned_impl!(u64, i64);
+    fn to_unsigned(self) -> Simd<T::Unsigned, LANES> {
+        self.cast::<T::Unsigned>()
+    }
+}

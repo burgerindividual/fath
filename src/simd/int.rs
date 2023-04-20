@@ -12,19 +12,27 @@ where
     Simd<T, LANES>: SimdOrd<Mask = Mask<T::Signed, LANES>>
         + SimdUint
         + Unsigned
+        + FastApproxInt
         + Add<Output = Self>
         + Mul<Output = Self>
-        + Shr<Output = Self>
-        + Real,
-    T: SimdElement + Unsigned + Bounded + FastExactInt + Integer + From<f128>,
-    T::Signed: MaskElement,
-    f128: From<T>,
+        + Shr<Output = Self>,
+    // <Simd<T, LANES> as SimdPartialEq>::Mask: Mask<T::Signed, LANES>,
+    Simd<T::Signed, LANES>: Add<Output = Self>,
+    T: SimdElement
+        + Unsigned
+        + Bounded
+        + FastExactInt
+        + Integer
+        + From<f128>
+        + Into<f128>
+        + From<i8>,
+    T::Signed: MaskElement + Bounded + Into<u128>,
 {
     #[inline(always)]
     unsafe fn ilog_fast_approx<const BASE: u128>(self) -> Self {
         let numerator: T = (T::max_value() / (T::max_value().ilog::<2>() + T::one())) + T::one();
         let shift: T = numerator.ilog::<2>();
-        let multiplier: T = (f128::from(numerator) / f128::from_u128(BASE).unwrap().log2()).into();
+        let multiplier: T = (numerator.into() / f128::from_u128(BASE).unwrap().log2()).into();
 
         ((ilog2(self) + Simd::splat(T::one())) * Simd::splat(multiplier)) >> Simd::splat(shift)
     }
@@ -33,13 +41,15 @@ where
 impl<const LANES: usize, T> FastExactInt for Simd<T, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
-    Simd<T, LANES>: SimdOrd<Mask = Into<Mask<T::Signed, LANES>>>
+    Simd<T, LANES>: SimdOrd<Mask = Mask<T::Signed, LANES>>
         + SimdUint
         + Unsigned
         + FastApproxInt
         + Add<Output = Self>
         + Mul<Output = Self>
         + Shr<Output = Self>,
+    // <Simd<T, LANES> as SimdPartialEq>::Mask: Mask<T::Signed, LANES>,
+    Simd<T::Signed, LANES>: Add<Output = Self>,
     T: SimdElement
         + Unsigned
         + Bounded
@@ -68,7 +78,7 @@ where
         } else if BASE <= 7 {
             let min_digits = self.ilog_fast_approx();
             // to_int returns 0 for false, -1 for true
-            (min_digits.to_signed() + min_digits.ipow().simd_gt(self).into().to_int()).to_unsigned()
+            (min_digits.to_signed().into() + min_digits.ipow().simd_gt(self).to_int()).to_unsigned()
         } else {
             // for some reason, (i32::MAX as u32).ilog(base) emits horrible codegen.
             // this if statement patches it and has the same behavior.
