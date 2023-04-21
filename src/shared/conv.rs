@@ -1,11 +1,11 @@
-pub trait Signed<Output>: Sized {
-    type Unsigned: Output;
+pub trait Signed: Sized {
+    type Unsigned: Unsigned<Signed = Self>;
 
-    fn to_unsigned(self) -> Output;
+    fn to_unsigned(self) -> Self::Unsigned;
 }
 
-pub trait Unsigned<Output>: Sized {
-    type Signed: Output;
+pub trait Unsigned: Sized {
+    type Signed: Signed<Unsigned = Self>;
 
-    fn to_signed(self) -> Output;
+    fn to_signed(self) -> Self::Signed;
 }
