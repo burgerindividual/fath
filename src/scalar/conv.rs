@@ -2,18 +2,14 @@ use crate::shared::conv::*;
 
 macro_rules! signed_unsigned_impl {
     ($u:ty,$s:ty) => {
-        impl<T> Unsigned<T> for $u {
-            type Signed = $s;
-
-            fn to_signed(self) -> Self::Signed {
+        impl Unsigned<$s> for $u {
+            fn to_signed(self) -> $s {
                 self as $s
             }
         }
 
-        impl<T> Signed<T> for $s {
-            type Unsigned = $u;
-
-            fn to_unsigned(self) -> Self::Unsigned {
+        impl Signed<$u> for $s {
+            fn to_unsigned(self) -> $u {
                 self as $u
             }
         }
