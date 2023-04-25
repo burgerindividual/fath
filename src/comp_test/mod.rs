@@ -2,6 +2,7 @@ use crate::shared::int::*;
 use core::simd::*;
 
 #[inline(never)]
-pub fn test(x: u32x4) -> u32x4 {
-    unsafe { x.ilog_const_base_fast_approx::<10>() }
+pub fn test() -> u64 {
+    let y = 30872332346397_u64;
+    unsafe { core::hint::black_box(y).ilog_const_base_unchecked::<10>() }
 }

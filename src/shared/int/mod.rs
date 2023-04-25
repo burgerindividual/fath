@@ -1,3 +1,5 @@
+pub mod consts;
+
 // TODO: figure out how to make these const generics type self
 
 pub trait FastApproxInt {
