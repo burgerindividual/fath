@@ -1,9 +1,10 @@
-use crate::shared::*;
+use crate::shared::float::*;
+use crate::shared::int::*;
 use core::f32::consts::FRAC_PI_2;
 use core::ops::Range;
-use core::simd::{LaneCount, Simd, SimdFloat, SimdPartialOrd, SupportedLaneCount};
+use core::simd::*;
 use rand::rngs::ThreadRng;
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng, RngCore};
 // #[cfg(target_arch = "x86")]
 // #[allow(unused_imports)]
 // use core::arch::x86::*;
@@ -84,9 +85,6 @@ pub fn simd_error() {
             }
 
             let x = unsafe { vec_uninit.assume_init() };
-            unsafe {
-                Simd::splat(1u32).ilog_fast_approx();
-            }
 
             let approx_0 = unsafe { x.sin_fast_approx::<0>() };
             let approx_1 = unsafe { x.sin_fast_approx::<1>() };
@@ -143,6 +141,59 @@ pub fn simd_error() {
                 "Error greater than set maximum: true: {:?}, approx: {:?}, x: {:?}",
                 exact,
                 approx_3,
+                x
+            );
+        }
+    }
+}
+
+#[inline(never)]
+#[test]
+pub fn simd_ilog_error() {
+    let rng = &mut thread_rng();
+
+    test::<2>(rng);
+    test::<4>(rng);
+    test::<8>(rng);
+    test::<16>(rng);
+
+    #[inline(always)]
+    fn test<const LANES: usize>(rng: &mut ThreadRng)
+    where
+        LaneCount<LANES>: SupportedLaneCount,
+    {
+        for _i in 0..ITERS {
+            let mut vec_uninit: core::mem::MaybeUninit<Simd<u32, LANES>> =
+                core::mem::MaybeUninit::uninit();
+            let vec_ptr = vec_uninit.as_mut_ptr();
+
+            for i in 0..LANES {
+                unsafe {
+                    (*vec_ptr)[i] = rng.next_u32();
+                }
+            }
+
+            let x = unsafe { vec_uninit.assume_init() };
+
+            let fast = unsafe { x.ilog_const_base_unchecked::<3>() };
+
+            let mut vec_uninit: core::mem::MaybeUninit<Simd<u32, LANES>> =
+                core::mem::MaybeUninit::uninit();
+            let vec_ptr = vec_uninit.as_mut_ptr();
+
+            for i in 0..LANES {
+                unsafe {
+                    (*vec_ptr)[i] = x[i].ilog(3);
+                }
+            }
+
+            let exact = unsafe { vec_uninit.assume_init() };
+
+            assert!(
+                exact.simd_eq(fast).all(),
+                "Error greater than set maximum: true: {:?}, approx: {:?}, x: {:?}",
+                exact,
+                fast,
                 x
             );
         }

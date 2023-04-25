@@ -1,5 +1,7 @@
 #![feature(core_intrinsics, portable_simd)]
-#![no_std]
+// #![no_std]
+
+pub extern crate std as core;
 
 extern crate alloc;
 
@@ -10,3 +12,5 @@ pub mod simd;
 
 #[cfg(test)]
 pub mod test;
+
+pub mod comp_test;

@@ -1,4 +1,4 @@
-use crate::shared::*;
+use crate::shared::float::*;
 use crate::*;
 use core::simd::*;
 

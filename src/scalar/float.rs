@@ -1,4 +1,4 @@
-use crate::shared::*;
+use crate::shared::float::*;
 
 impl FastApproxFloat for f32 {
     #[inline(always)]

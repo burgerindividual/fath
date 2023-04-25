@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-num = "0.4.0"
-f128 = "0.2.9"
-#f256 = "0.1.2"
-#fixed = "1.23.1"
+#num = "0.4.0"
+#fixed = "2.0.0-alpha.11"
 
 [dev-dependencies]
 rand = "0.8.5"
