@@ -41,14 +41,13 @@ macro_rules! unsigned_impl {
                 } else if BASE == 2 {
                     const UNSIGNED_LOG2: $u = (<$u>::BITS - 1) as $u;
 
-                    let signed = self.cast::<$s>();
-
                     // checks if the input is greater than the signed maximum
-                    let unsigned_mask =
-                        Mask::from_int_unchecked(signed >> Simd::splat(UNSIGNED_LOG2 as $s));
+                    let unsigned_mask = Mask::from_int_unchecked(
+                        self.cast::<$s>() >> Simd::splat(UNSIGNED_LOG2 as $s),
+                    );
 
                     // need to get rid of bits that could cause a round-up
-                    let adjusted = signed & !(signed >> Simd::splat(24));
+                    let adjusted = (self & !(self >> Simd::splat($mant_bits + 1))).cast::<$s>();
 
                     let exponent = (adjusted.cast::<$f>().to_bits() >> Simd::splat($mant_bits))
                         - Simd::splat((1 << ((size_of::<$f>() * 8) - 2 - $mant_bits)) - 1);
