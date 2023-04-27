@@ -27,7 +27,10 @@ macro_rules! unsigned_impl {
         {
             #[inline(always)]
             fn ilog_const_base<const BASE: u32>(self) -> Self {
-                assert!(!self.simd_le(Simd::splat(0)).any(), "invalid input: less than 1");
+                assert!(
+                    !self.simd_le(Simd::splat(0)).any(),
+                    "invalid input: less than 1"
+                );
                 unsafe { self.ilog_const_base_unchecked::<BASE>() }
             }
 
@@ -37,23 +40,17 @@ macro_rules! unsigned_impl {
                     panic!("invalid base: {:?}", BASE);
                 } else if BASE == 2 {
                     const UNSIGNED_LOG2: $u = (<$u>::BITS - 1) as $u;
-                    let safe_conv_max: $s =
-                        <$f>::from_bits(((<$s>::MAX) as $f).to_bits() - 1) as $s;
 
-                    // float rounding rules require us to clamp to this value to ensure that we don't get undefined behavior
-                    let signed = self.cast::<$s>().simd_min(Simd::splat(safe_conv_max));
+                    let signed = self.cast::<$s>();
+
                     // checks if the input is greater than the signed maximum
                     let unsigned_mask =
                         Mask::from_int_unchecked(signed >> Simd::splat(UNSIGNED_LOG2 as $s));
 
-                    let float = signed.cast::<$f>();
-                    let converted = float.to_int_unchecked::<$s>();
+                    // need to get rid of bits that could cause a round-up
+                    let adjusted = signed & !(signed >> Simd::splat(24));
 
-                    // -1 if result value rounded above initial value, otherwise 0
-                    let greater_modifier = converted.simd_gt(signed).to_int();
-
-                    let exponent = ((float.to_bits().cast::<$s>() + greater_modifier).cast::<$u>()
-                        >> Simd::splat($mant_bits))
+                    let exponent = (adjusted.cast::<$f>().to_bits() >> Simd::splat($mant_bits))
                         - Simd::splat((1 << ((size_of::<$f>() * 8) - 2 - $mant_bits)) - 1);
 
                     unsigned_mask.select(Simd::splat(UNSIGNED_LOG2), exponent)
