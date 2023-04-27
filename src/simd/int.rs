@@ -7,20 +7,6 @@ use std::mem;
 
 macro_rules! unsigned_impl {
     ($u:ty,$s:ty,$f:ty,$mant_bits:expr) => {
-        impl<const LANES: usize> FastApproxInt for Simd<$u, LANES>
-        where
-            LaneCount<LANES>: SupportedLaneCount,
-        {
-            #[inline(always)]
-            unsafe fn ilog_const_base_fast_approx<const BASE: u32>(self) -> Self {
-                let mul_shift = ilog_mul_shift!($u, BASE);
-
-                ((self.ilog_const_base_unchecked::<2>() + Simd::splat(1))
-                    * Simd::splat(mul_shift.0))
-                    >> Simd::splat(mul_shift.1)
-            }
-        }
-
         impl<const LANES: usize> FastExactInt for Simd<$u, LANES>
         where
             LaneCount<LANES>: SupportedLaneCount,
@@ -41,14 +27,13 @@ macro_rules! unsigned_impl {
                 } else if BASE == 2 {
                     const UNSIGNED_LOG2: $u = (<$u>::BITS - 1) as $u;
 
-                    let signed = self.cast::<$s>();
-
                     // checks if the input is greater than the signed maximum
-                    let unsigned_mask =
-                        Mask::from_int_unchecked(signed >> Simd::splat(UNSIGNED_LOG2 as $s));
+                    let unsigned_mask = Mask::from_int_unchecked(
+                        self.cast::<$s>() >> Simd::splat(UNSIGNED_LOG2 as $s),
+                    );
 
                     // need to get rid of bits that could cause a round-up
-                    let adjusted = signed & !(signed >> Simd::splat(24));
+                    let adjusted = (self & !(self >> Simd::splat(24))).cast::<$s>();
 
                     let exponent = (adjusted.cast::<$f>().to_bits() >> Simd::splat($mant_bits))
                         - Simd::splat((1 << ((size_of::<$f>() * 8) - 2 - $mant_bits)) - 1);
@@ -59,10 +44,14 @@ macro_rules! unsigned_impl {
 
                     // If this is greater than 10, chances are the loop won't unroll.
                     if max_unsigned > 10 {
-                        let min_digits = self.ilog_const_base_fast_approx::<BASE>();
+                        let mul_shift = ilog_mul_shift!($u, BASE);
+
+                        let approx = ((self.ilog_const_base_unchecked::<2>() + Simd::splat(1))
+                            * Simd::splat(mul_shift.0))
+                            >> Simd::splat(mul_shift.1);
                         // to_int returns 0 for false, -1 for true
-                        (min_digits.cast::<$s>()
-                            + min_digits.ipow_const_coeff::<BASE>().simd_gt(self).to_int())
+                        (approx.cast::<$s>()
+                            + approx.ipow_const_coeff::<BASE>().simd_gt(self).to_int())
                         .cast::<$u>()
                     } else {
                         // this if statement avoids potential horrible codegen
