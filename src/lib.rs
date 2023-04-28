@@ -12,5 +12,3 @@ pub mod simd;
 
 #[cfg(test)]
 pub mod test;
-
-pub mod comp_test;
