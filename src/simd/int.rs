@@ -51,7 +51,7 @@ macro_rules! unsigned_impl {
                             >> Simd::splat(mul_shift.1);
                         // to_int returns 0 for false, -1 for true
                         (approx.cast::<$s>()
-                            + approx.ipow_const_coeff::<BASE>().simd_gt(self).to_int())
+                            + approx.exp_const_coeff::<BASE>().simd_gt(self).to_int())
                         .cast::<$u>()
                     } else {
                         // this if statement avoids potential horrible codegen
@@ -90,7 +90,7 @@ macro_rules! unsigned_impl {
             }
 
             #[inline(always)]
-            fn ipow_const_coeff<const COEFF: u32>(self) -> Self {
+            fn exp_const_coeff<const COEFF: u32>(self) -> Self {
                 assert!(
                     COEFF <= <$u>::MAX as u32,
                     "invalid coefficient: {:?}",

@@ -27,12 +27,12 @@ macro_rules! unsigned_impl {
                         >> mul_shift.1;
                     // gets rid of the bounds check in the ipow
                     assume(approx < <$u>::MAX.ilog(BASE as $u) as $u);
-                    approx - ((approx.ipow_const_coeff::<BASE>() > self) as $u)
+                    approx - ((approx.exp_const_coeff::<BASE>() > self) as $u)
                 }
             }
 
             #[inline(always)]
-            fn ipow_const_coeff<const COEFF: u32>(self) -> Self {
+            fn exp_const_coeff<const COEFF: u32>(self) -> Self {
                 let power_count = <$u>::MAX.ilog(COEFF as $u) as usize;
                 let mut power_table = [0 as $u; <$u>::BITS as usize];
                 for i in 0..power_count {
