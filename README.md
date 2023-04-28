@@ -2,9 +2,11 @@
 ### Fa(st ma)th library written in Rust, built for speed.
 --------------------
 
-Most of the functions in here are faster than equivalent functions in sleef, at the expense of safety. This library heavily relies on unsafe and nightly features. Use at your own risk.
+This library *heavily* relies on unsafe and nightly features to achieve the best performance. The primary use case for this library is in games or graphics development, where speed matters more than precision
+
 When using SIMD functions in this package, compile with LTO and `opt-level=3` to ensure that auto-vectorization takes place. All SIMD functions have a feature cap at AVX2, and nothing in this library utilizes anything from AVX512. If certain functions vectorize on lower requirements, that's a bonus.
 
+Most of the functions in here are faster than equivalent functions in sleef, at the expense of safety.
 (TODO: add comparison to sleef_rs)
 
 ## Currently Implemented Functions

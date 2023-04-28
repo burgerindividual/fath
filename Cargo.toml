@@ -6,6 +6,7 @@ edition = "2021"
 license = "GPL-3.0"
 repository = "https://github.com/burgerindividual/fath"
 description = "Fa(st ma)th library built for speed."
+keywords = ["math", "no_std", "graphics", "fast"]
 
 [dev-dependencies]
 rand = "0.8.5"
