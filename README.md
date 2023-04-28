@@ -1,4 +1,4 @@
-# fath
+# fath ![crates.io](https://img.shields.io/crates/v/fath.svg)
 ### Fa(st ma)th library written in Rust, built for speed.
 --------------------
 
