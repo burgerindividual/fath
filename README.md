@@ -21,6 +21,8 @@ Allows setting a variable precision level as a `const` generic.
 **Exact Unsigned Integer Functions:**
 * `ilog` with `const` base
   * Has multiple implementations depending on the base to achieve maximum performance. The fastest impl is for log base 2.
+* `exp` with `const` coefficient
+  * Similar to previous function, but calculates `COEFF^x` instead.
 
 ## Contributing
 Any help on the library is greatly appreciated. If you'd like to contribute, just submit a PR and I'll respond to it as soon as I can.
