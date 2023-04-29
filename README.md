@@ -1,5 +1,9 @@
 # fath ![crates.io](https://img.shields.io/crates/v/fath.svg)
-### Fa(st ma)th library written in Rust, built for speed.
+### fa(st ma)th
+### A math library written in Rust, built for speed.
+
+Includes configurable-precision approximations and exact functions for both ints and floats. Uses cross-platform intrinsics and SIMD whenever possible.
+
 --------------------
 
 This library *heavily* relies on unsafe and nightly features to achieve the best performance. The primary use case for this library is in games or graphics development, where speed matters more than precision

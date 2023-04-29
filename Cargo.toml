@@ -1,12 +1,12 @@
 [package]
 name = "fath"
 authors = [ "burgerindividual", "duplexsystem" ]
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 license = "LGPL-3.0"
 repository = "https://github.com/burgerindividual/fath"
-description = "Fa(st ma)th library built for speed."
-keywords = ["math", "no_std", "graphics", "fast"]
+description = "Math library built for speed. Includes configurable-precision approximations and exact functions for both ints and floats. Uses cross-platform intrinsics and SIMD whenever possible."
+keywords = ["math", "no_std", "fast", "simd", "approximation"]
 
 [dev-dependencies]
 rand = "0.8.5"
