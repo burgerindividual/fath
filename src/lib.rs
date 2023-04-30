@@ -1,9 +1,5 @@
-#![feature(core_intrinsics, portable_simd)]
-// #![no_std]
-
-pub extern crate std as core;
-
-extern crate alloc;
+#![feature(core_intrinsics, portable_simd, array_zip)]
+#![no_std]
 
 pub mod scalar;
 pub mod shared;
