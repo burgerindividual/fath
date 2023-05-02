@@ -200,6 +200,10 @@ pub fn simd_ilog_error() {
     }
 }
 
+// #[inline(never)]
+// #[test]
+
+
 // /// Options:
 // /// --cfg print_values
 // /// --cfg print_error

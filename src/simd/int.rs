@@ -4,6 +4,8 @@ use crate::*;
 use core::mem::size_of;
 use core::simd::*;
 
+// TODO: MOVE IMPLS TO SEPARATE FILE
+
 macro_rules! unsigned_impl {
     ($u:ty,$s:ty,$f:ty,$mant_bits:expr) => {
         impl<const LANES: usize> FastExactInt for Simd<$u, LANES>

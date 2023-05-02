@@ -113,8 +113,8 @@ unsafe fn log2_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
     };
 
     let mut mant_log2 = coeffs[0];
-    for i in 1..coeffs.len() {
-        mant_log2 = fadd_fast(fmul_fast(mantissa, mant_log2), coeffs[i]);
+    for &coeff in &coeffs[1..] {
+        mant_log2 = fadd_fast(fmul_fast(mantissa, mant_log2), coeff);
     }
 
     let exponent = ((x.to_bits() >> 23_u32) as i32 - 127_i32) as f32;

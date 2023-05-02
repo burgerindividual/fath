@@ -1,8 +1,8 @@
-use crate::shared::float::FastApproxFloat;
+use crate::simd::platform::SimdPlatformIntrinsics;
 use core::simd::*;
 
 #[inline(never)]
 #[allow(dead_code)]
-pub fn test(x: f32x8, base: f32x8) -> f32x8 {
-    unsafe { x.log_fast_approx::<0>(base) }
+pub fn test(x: i32x4, indices: i32x4) -> i32x4 {
+    unsafe { x.dyn_swizzle(indices).unwrap() }
 }
