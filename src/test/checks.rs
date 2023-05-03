@@ -1,6 +1,8 @@
 use crate::shared::float::*;
 use crate::shared::int::*;
+use crate::simd::platform::*;
 use core::f32::consts::FRAC_PI_2;
+use core::hint::black_box;
 use core::ops::Range;
 use core::simd::*;
 use rand::rngs::ThreadRng;
@@ -200,9 +202,17 @@ pub fn simd_ilog_error() {
     }
 }
 
-// #[inline(never)]
-// #[test]
+#[inline(never)]
+#[test]
+pub fn dyn_swizzle_test() {
+    let x = black_box(i32x4::from_array([
+        634764573, 723486234, 834685234, 934578454,
+    ]));
+    let indices = black_box(i32x4::from_array([3, 1, 2, 0]));
+    let swizzled = unsafe { x.dyn_swizzle(indices).unwrap() };
 
+    println!("{:?}", swizzled);
+}
 
 // /// Options:
 // /// --cfg print_values

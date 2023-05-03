@@ -1,3 +1,4 @@
 pub mod float;
 pub mod int;
-pub mod platform;
+
+pub(crate) mod platform;

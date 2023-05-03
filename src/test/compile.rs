@@ -1,4 +1,4 @@
-use crate::simd::platform::SimdPlatformIntrinsics;
+use crate::simd::platform::DynamicSwizzle;
 use core::simd::*;
 
 #[inline(never)]
