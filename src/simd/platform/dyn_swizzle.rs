@@ -5,21 +5,24 @@ use core::mem::*;
 use core::simd::*;
 
 macro_rules! empty_impl {
-    ($($t:ty,$lanes:literal),+) => {
+    ($($t:ty,$input_lanes:literal,$output_lanes:literal),+) => {
         $(
-        impl DynamicSwizzle<$t, $lanes> for Simd<$t, $lanes> {}
+        impl DynamicSwizzle<$t, $input_lanes, $output_lanes> for Simd<$t, $input_lanes> {}
         )+
     };
 }
 
-macro_rules! sse3_le_128_impl {
-    ($($t:ty,$lanes:literal),+) => {
+macro_rules! intrinsic_impl {
+    ($intrinsic_fn,$intrinsic_bytes,$($t:ty,$input_lanes:literal,$output_lanes:literal),+) => {
         $(
         #[allow(clippy::useless_transmute)]
-        impl DynamicSwizzle<$t, $lanes> for Simd<$t, $lanes> {
-            unsafe fn dyn_swizzle(self, indices: Simd<<$t as SimdElement>::Mask, $lanes>) -> Option<Self> {
+        impl DynamicSwizzle<$t, $input_lanes, $output_lanes> for Simd<$t, $input_lanes> {
+            unsafe fn dyn_swizzle_unchecked(
+                self,
+                indices: Simd<<$t as SimdElement>::Mask, $output_lanes>
+            ) -> Option<Simd<$t, $output_lanes>> {
                 const BYTES_PER_LANE: usize = size_of::<$t>();
-                const BYTES: usize = size_of::<Simd<$t, $lanes>>();
+                const BYTES: usize = size_of::<Simd<$t, $input_lanes>>();
                 const INDICES_ADDITIVE: ([usize; BYTES], Simd<i8, BYTES>) =
                     create_indices_additive::<BYTES, BYTES_PER_LANE>();
 
@@ -28,22 +31,15 @@ macro_rules! sse3_le_128_impl {
                 byte_indices *= Simd::splat(BYTES_PER_LANE as i8);
                 byte_indices += INDICES_ADDITIVE.1;
 
-                const LANES_128: usize = 16 / BYTES_PER_LANE;
-                const SHRINK_INDICES: [usize; $lanes] = {
-                    let mut indices = [0_usize; $lanes];
-                    let mut i = 0;
-                    while i < $lanes {
-                        indices[i] = i;
-                        i += 1;
-                    }
-                    indices
-                };
+                const LANES_INTRINSIC: usize = $intrinsic_bytes / BYTES_PER_LANE;
+                const SHRINK_INDICES: [usize; $output_lanes] =
+                    create_resize_indices::<LANES_INTRINSIC, $output_lanes>();
 
                 Some(
                     simd_swizzle!(
-                        transmute::<_, Simd<$t, LANES_128>>(_mm_shuffle_epi8(
-                            transmute(simd_swizzle!(self, create_widen_indices::<$lanes, LANES_128>())),
-                            transmute(simd_swizzle!(byte_indices, create_widen_indices::<BYTES, 16>())),
+                        transmute::<_, Simd<$t, LANES_INTRINSIC>>($intrinsic_fn(
+                            transmute(simd_swizzle!(self, create_resize_indices::<$input_lanes, LANES_128>())),
+                            transmute(simd_swizzle!(byte_indices, create_resize_indices::<BYTES, 16>())),
                         )),
                         SHRINK_INDICES
                     )
@@ -77,22 +73,22 @@ where
     (indices, Simd::from_array(additive))
 }
 
-const fn create_widen_indices<const INPUT_LANES: usize, const OUTPUT_LANES: usize>(
+const fn create_resize_indices<const INPUT_LANES: usize, const OUTPUT_LANES: usize>(
 ) -> [usize; OUTPUT_LANES] {
-    let mut widen_indices = [0_usize; OUTPUT_LANES];
+    let mut resize_indices = [0_usize; OUTPUT_LANES];
 
     let mut i = 0;
     while i < OUTPUT_LANES {
         // this pattern allows the compiler to generate a broadcast rather than another shuffle sometimes
-        widen_indices[i] = i % INPUT_LANES;
+        resize_indices[i] = i % INPUT_LANES;
         i += 1;
     }
 
-    widen_indices
+    resize_indices
 }
 
-impl<T: SimdElement> DynamicSwizzle<T, 1> for Simd<T, 1> {
-    unsafe fn dyn_swizzle(self, _indices: Simd<T::Mask, 1>) -> Option<Self> {
+impl<T: SimdElement> DynamicSwizzle<T, 1> for Simd<T, 1>     ,{
+    unsafe fn dyn_swizzle_unchecked(self, _indices: Simd<T::Mask, 1>) -> Option<Self> {
         // no need to shuffle with 1 lane
         Some(self)
     }
@@ -116,6 +112,7 @@ cfg_if::cfg_if! {
     // } else
     if #[cfg(target_feature = "sse3")] {
         sse3_le_128_impl!(
+            _mm_shuffle_epi8, 16,
             u8,  2, u8,  4, u8,  8, u8,  16,
             i8,  2, i8,  4, i8,  8, i8,  16,
             u16, 2, u16, 4, u16, 8,
