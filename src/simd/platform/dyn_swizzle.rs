@@ -57,55 +57,71 @@ where
 macro_rules! intrinsic_impl {
     ($intrinsic_fn:ident,$intrinsic_bytes:literal,$($($t:ty),+,$($input_lanes:literal,$output_lanes:literal),+),+) => {
         $(
+            macro_rules! iter_lanes {
+                ($t_inner:ty) => {
+                    $(
         #[allow(clippy::useless_transmute)]
-        impl DynamicSwizzle<$t, $input_lanes, $output_lanes> for Simd<$t, $input_lanes> {
+        impl DynamicSwizzle<$t_inner, $input_lanes, $output_lanes> for Simd<$t_inner, $input_lanes> {
             unsafe fn dyn_swizzle_unchecked(
                 self,
-                indices: Simd<<$t as SimdElement>::Mask, $output_lanes>
-            ) -> Option<Simd<$t, $output_lanes>> {
-                const BYTES_PER_LANE: usize = size_of::<$t>();
-                const BYTES: usize = size_of::<Simd<$t, $input_lanes>>();
-                const INDICES_ADDITIVE: ([usize; BYTES], Simd<i8, BYTES>) =
-                    create_indices_additive::<BYTES, BYTES_PER_LANE>();
+                indices: Simd<<$t_inner as SimdElement>::Mask, $output_lanes>
+            ) -> Option<Simd<$t_inner, $output_lanes>> {
+                const BYTES_PER_LANE: usize = size_of::<$t_inner>();
+                const BYTES_INPUT: usize = size_of::<Simd<$t_inner, $input_lanes>>();
 
-                let mut byte_indices = transmute::<_, Simd<i8, BYTES>>(indices);
-                byte_indices = simd_swizzle!(byte_indices, INDICES_ADDITIVE.0);
-                byte_indices *= Simd::splat(BYTES_PER_LANE as i8);
-                byte_indices += INDICES_ADDITIVE.1;
+                const BYTES_OUTPUT: usize = size_of::<Simd<$t_inner, $output_lanes>>();
+
+                // const LANES_MAX: usize = if $input_lanes > $output_lanes {$input_lanes} else {$output_lanes};
+                const BYTES_MAX: usize = if BYTES_INPUT > BYTES_OUTPUT {BYTES_INPUT} else {BYTES_OUTPUT};
+
+                const INDICES_ADDITIVE: ([usize; BYTES_MAX], Simd<i8, BYTES_MAX>) =
+                    create_indices_additive::<BYTES_OUTPUT, BYTES_MAX, BYTES_PER_LANE>();
+
+                let byte_indices = transmute::<_, Simd<i8, BYTES_OUTPUT>>(indices);
+                let mut byte_indices_resized = simd_swizzle!(byte_indices, INDICES_ADDITIVE.0);
+                byte_indices_resized *= Simd::splat(BYTES_PER_LANE as i8);
+                byte_indices_resized += INDICES_ADDITIVE.1;
 
                 const LANES_INTRINSIC: usize = $intrinsic_bytes / BYTES_PER_LANE;
-                const SHRINK_INDICES: [usize; $output_lanes] =
-                    create_resize_indices::<LANES_INTRINSIC, $output_lanes>();
 
                 Some(
                     simd_swizzle!(
-                        transmute::<_, Simd<$t, LANES_INTRINSIC>>($intrinsic_fn(
-                            transmute(simd_swizzle!(self, create_resize_indices::<$input_lanes, LANES_128>())),
-                            transmute(simd_swizzle!(byte_indices, create_resize_indices::<BYTES, 16>())),
+                        transmute::<_, Simd<$t_inner, LANES_INTRINSIC>>($intrinsic_fn(
+                            transmute(simd_swizzle!(self, create_resize_indices::<$input_lanes, LANES_INTRINSIC>())),
+                            transmute(simd_swizzle!(byte_indices_resized, create_resize_indices::<BYTES_MAX, 16>())),
                         )),
-                        SHRINK_INDICES
+                        create_resize_indices::<LANES_INTRINSIC, $output_lanes>()
                     )
                 )
             }
         }
+                    )+
+                };
+            }
+            $(
+            iter_lanes!($t);
+            )+
         )+
     }
 }
 
 // Assumes little endian I think?
-const fn create_indices_additive<const BYTES: usize, const BYTES_PER_LANE: usize>(
-) -> ([usize; BYTES], Simd<i8, BYTES>)
+const fn create_indices_additive<
+    const BYTES_INPUT: usize,
+    const BYTES_OUTPUT: usize,
+    const BYTES_PER_LANE: usize,
+>() -> ([usize; BYTES_OUTPUT], Simd<i8, BYTES_OUTPUT>)
 where
-    LaneCount<BYTES>: SupportedLaneCount,
+    LaneCount<BYTES_OUTPUT>: SupportedLaneCount,
 {
-    let mut indices = [0_usize; BYTES];
-    let mut additive = [0_i8; BYTES];
+    let mut indices = [0_usize; BYTES_OUTPUT];
+    let mut additive = [0_i8; BYTES_OUTPUT];
 
     let mut i = 0;
-    while i < BYTES {
+    while i < BYTES_OUTPUT {
         let mut j = 0;
         while j < BYTES_PER_LANE {
-            indices[i + j] = i;
+            indices[i + j] = i % BYTES_INPUT;
             additive[i + j] = j as i8;
             j += 1;
         }
@@ -177,13 +193,90 @@ cfg_if::cfg_if! {
     }
 }
 
-// empty_impl!(
-//     u8, i8, 64, 2, 64, 4, 64, 8, 64, 16, 64, 32, 64, 64,
-//             2, 64, 4, 64, 8, 64, 16, 64, 32, 64,
-//             32, 2, 32, 4, 32, 8, 32, 16, 32, 32,
-//             2, 32, 4, 32, 8, 32, 16, 32
-//     u16, i16, 64, 2, 64, 4, 64, 8, 64, 16, 64, 32, 64, 64,
-//             2, 64, 4, 64, 8, 64, 16, 64, 32, 64,
-//             32, 2, 32, 4, 32, 8, 32, 16, 32, 32,
-//             2, 32, 4, 32, 8, 32, 16, 32
-// );
+empty_impl!(
+    u8, i8, 64, 64, 64, 32, 32, 64, 64, 16, 16, 64, 64, 8, 8, 64, 64, 4, 4, 64, 64, 2, 2, 64, 32,
+    32, 32, 16, 16, 32, 32, 8, 8, 32, 32, 4, 4, 32, 32, 2, 2, 32, u16, i16, 64, 64, 64, 32, 32, 64,
+    64, 16, 16, 64, 64, 8, 8, 64, 64, 4, 4, 64, 64, 2, 2, 64, 32, 32, 32, 16, 16, 32, 32, 8, 8, 32,
+    32, 4, 4, 32, 32, 2, 2, 32, 16, 16, 16, 8, 8, 16, 16, 4, 4, 16, 16, 2, 2, 16, u32, i32, f32,
+    64, 64, 64, 32, 32, 64, 64, 16, 16, 64, 64, 8, 8, 64, 64, 4, 4, 64, 64, 2, 2, 64, 32, 32, 32,
+    16, 16, 32, 32, 8, 8, 32, 32, 4, 4, 32, 32, 2, 2, 32, 16, 16, 16, 8, 8, 16, 16, 4, 4, 16, 16,
+    2, 2, 16, 8, 8, 8, 4, 4, 8, 8, 2, 2, 8, u64, i64, f64, 64, 64, 64, 32, 32, 64, 64, 16, 16, 64,
+    64, 8, 8, 64, 64, 4, 4, 64, 64, 2, 2, 64, 32, 32, 32, 16, 16, 32, 32, 8, 8, 32, 32, 4, 4, 32,
+    32, 2, 2, 32, 16, 16, 16, 8, 8, 16, 16, 4, 4, 16, 16, 2, 2, 16, 8, 8, 8, 4, 4, 8, 8, 2, 2, 8,
+    4, 4, 4, 2, 2, 4
+);
+
+intrinsic_impl!(
+    _mm_shuffle_epi8,
+    16,
+    u8,
+    i8,
+    16,
+    16,
+    16,
+    8,
+    8,
+    16,
+    16,
+    4,
+    4,
+    16,
+    16,
+    2,
+    2,
+    16,
+    8,
+    8,
+    8,
+    4,
+    4,
+    8,
+    8,
+    2,
+    2,
+    8,
+    4,
+    4,
+    4,
+    2,
+    2,
+    4,
+    2,
+    2,
+    u16,
+    i16,
+    8,
+    8,
+    8,
+    4,
+    4,
+    8,
+    8,
+    2,
+    2,
+    8,
+    4,
+    4,
+    4,
+    2,
+    2,
+    4,
+    2,
+    2,
+    u32,
+    i32,
+    f32,
+    4,
+    4,
+    4,
+    2,
+    2,
+    4,
+    2,
+    2,
+    u64,
+    i64,
+    f64,
+    2,
+    2
+);

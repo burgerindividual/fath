@@ -14,7 +14,7 @@ use rand::{thread_rng, Rng, RngCore};
 // #[allow(unused_imports)]
 // use core::arch::x86_64::*;
 
-const ITERS: usize = 1 << 20;
+const ITERS: usize = 1 << 16;
 
 #[inline(never)]
 #[test]
@@ -205,13 +205,13 @@ pub fn simd_ilog_error() {
 #[inline(never)]
 #[test]
 pub fn dyn_swizzle_test() {
-    // let x = black_box(i32x4::from_array([
-    //     634764573, 723486234, 834685234, 934578454,
-    // ]));
-    // let indices = black_box(i32x4::from_array([3, 1, 2, 0]));
-    // let swizzled = unsafe { x.dyn_swizzle(indices).unwrap() };
-    //
-    // println!("{:?}", swizzled);
+    let x = black_box(i32x4::from_array([
+        634764573, 723486234, 834685234, 934578454,
+    ]));
+    let indices = black_box(i32x4::from_array([3, 1, 2, 0]));
+    let swizzled = unsafe { x.dyn_swizzle(indices).unwrap() };
+    
+    println!("{:?}", swizzled);
 }
 
 // /// Options:

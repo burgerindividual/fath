@@ -11,7 +11,7 @@ where
 {
     unsafe fn dyn_swizzle_unchecked(
         self,
-        indices: Simd<T::Mask, OUTPUT_LANES>,
+        _indices: Simd<T::Mask, OUTPUT_LANES>,
     ) -> Option<Simd<T, OUTPUT_LANES>> {
         None
     }
