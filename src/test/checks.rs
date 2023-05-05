@@ -210,7 +210,7 @@ pub fn dyn_swizzle_test() {
     ]));
     let indices = black_box(i32x4::from_array([3, 1, 2, 0]));
     let swizzled = unsafe { x.dyn_swizzle(indices).unwrap() };
-    
+
     println!("{:?}", swizzled);
 }
 

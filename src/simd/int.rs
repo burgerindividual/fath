@@ -1,4 +1,5 @@
 use crate::shared::int::*;
+use crate::simd::platform::DynamicSwizzle;
 use crate::*;
 
 use core::mem::size_of;
@@ -52,7 +53,10 @@ macro_rules! unsigned_impl {
                             >> Simd::splat(mul_shift.1);
                         // to_int returns 0 for false, -1 for true
                         (approx.cast::<$s>()
-                            + approx.exp_const_coeff::<BASE>().simd_gt(self).to_int())
+                            + approx
+                                .exp_const_coeff_unchecked::<BASE>()
+                                .simd_gt(self)
+                                .to_int())
                         .cast::<$u>()
                     } else {
                         // this if statement avoids potential horrible codegen
@@ -91,7 +95,7 @@ macro_rules! unsigned_impl {
             }
 
             #[inline(always)]
-            fn exp_const_coeff<const COEFF: u32>(self) -> Self {
+            unsafe fn exp_const_coeff_unchecked<const COEFF: u32>(self) -> Self {
                 assert!(
                     COEFF <= <$u>::MAX as u32,
                     "invalid coefficient: {:?}",
@@ -105,19 +109,36 @@ macro_rules! unsigned_impl {
                     1 => Simd::splat(1),
                     2 => Simd::splat(2) << self,
                     _ => {
-                        let bit_count = <$u>::MAX.ilog(COEFF as $u).next_power_of_two().ilog2();
+                        let pow_count = <$u>::MAX.ilog(COEFF as $u);
+                        let pow_count_pow_2 = pow_count.next_power_of_two();
 
-                        let mut bit = 0b1;
-                        let mut result = Simd::splat(1);
-                        // calculate the power at each bit and multiply with the previous value
-                        for _i in 0..bit_count {
-                            result *= (self & Simd::splat(bit))
-                                .simd_eq(Simd::splat(bit))
-                                .select(Simd::splat((COEFF as $u).pow(bit as u32)), Simd::splat(1));
-                            bit <<= 1;
+                        let mut pow_array: [$u; 64] = [0; 64];
+
+                        for i in 0..pow_count {
+                            pow_array[i as usize] = (COEFF as $u).pow(i as u32);
                         }
 
-                        result
+                        let pow_vec = Simd::from_slice(&pow_array[..pow_count as usize]);
+
+                        DynamicSwizzle::<$u, 8, LANES>::
+                            dyn_swizzle_unchecked(pow_vec, self.cast::<$s>())
+                            .unwrap_or_else(|| {
+                                let bit_count = pow_count_pow_2.ilog2();
+
+                                let mut bit = 0b1;
+                                let mut result = Simd::splat(1);
+                                // calculate the power at each bit and multiply with the previous value
+                                for _i in 0..bit_count {
+                                    result *=
+                                        (self & Simd::splat(bit)).simd_eq(Simd::splat(bit)).select(
+                                            Simd::splat((COEFF as $u).pow(bit as u32)),
+                                            Simd::splat(1),
+                                        );
+                                    bit <<= 1;
+                                }
+
+                                result
+                            })
                     }
                 }
             }

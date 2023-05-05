@@ -1,11 +1,10 @@
-mod dyn_swizzle;
+pub(crate) mod dyn_swizzle;
 
 use core::simd::*;
 
-pub trait DynamicSwizzle<T, const INPUT_LANES: usize, const OUTPUT_LANES: usize>
+pub(crate) trait DynamicSwizzle<T: SimdElement, const INPUT_LANES: usize, const OUTPUT_LANES: usize>
 where
     Self: Sized,
-    T: SimdElement,
     LaneCount<INPUT_LANES>: SupportedLaneCount,
     LaneCount<OUTPUT_LANES>: SupportedLaneCount,
 {

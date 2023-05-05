@@ -1,4 +1,4 @@
-#![feature(core_intrinsics, portable_simd, array_zip, macro_metavar_expr)]
+#![feature(core_intrinsics, portable_simd, array_zip)]
 #![cfg_attr(not(test), no_std)]
 
 extern crate alloc;

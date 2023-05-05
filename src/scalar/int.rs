@@ -25,14 +25,13 @@ macro_rules! unsigned_impl {
                     let approx = (((self.leading_zeros() as $s | -(<$u>::BITS as $s))
                         * -(mul_shift.0 as $s)) as $u)
                         >> mul_shift.1;
-                    // gets rid of the bounds check in the ipow
-                    assume(approx < <$u>::MAX.ilog(BASE as $u) as $u);
-                    approx - ((approx.exp_const_coeff::<BASE>() > self) as $u)
+
+                    approx - ((approx.exp_const_coeff_unchecked::<BASE>() > self) as $u)
                 }
             }
 
             #[inline(always)]
-            fn exp_const_coeff<const COEFF: u32>(self) -> Self {
+            unsafe fn exp_const_coeff_unchecked<const COEFF: u32>(self) -> Self {
                 let power_count = <$u>::MAX.ilog(COEFF as $u) as usize;
                 let mut power_table = [0 as $u; <$u>::BITS as usize];
                 for i in 0..power_count {
@@ -40,9 +39,8 @@ macro_rules! unsigned_impl {
                 }
 
                 let index = self as usize;
-                assert!(index < power_count, "overflow from power");
 
-                power_table[index]
+                *power_table.get_unchecked(self as usize)
             }
         }
     };
