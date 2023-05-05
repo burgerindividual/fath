@@ -177,13 +177,10 @@ cfg_if::cfg_if! {
     }
 }
 
-// empty_impl!(u8, i8, 32, 2, 32, 4, 32, 8, 32, 16, 32, 32, 32, 64);
-// impl<const OUTPUT_LANES: usize> DynamicSwizzle<u8, 32, OUTPUT_LANES> for Simd<u8, 32> where
-//     LaneCount<OUTPUT_LANES>: SupportedLaneCount
-// {
-// }
-
-// impl<const INPUT_LANES: usize> DynamicSwizzle<u8, INPUT_LANES, 32> for Simd<u8, INPUT_LANES> where
-//     LaneCount<INPUT_LANES>: SupportedLaneCount
-// {
-// }
+empty_impl!(
+    u8, i8, 32, 2, 32, 4, 32, 8, 32, 16, 32, 32, 32, 64,
+            2, 32, 4, 32, 8, 32, 16, 32, 64, 32,
+            64, 2, 64, 4, 64, 8, 64, 16, 64, 32, 64, 64
+            2, 32, 4, 32, 8, 32, 16, 32, 64, 32,
+    u16, i16, 
+);
