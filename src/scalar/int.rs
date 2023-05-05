@@ -1,6 +1,5 @@
 use crate::shared::int::*;
 use crate::*;
-use core::intrinsics::*;
 
 // Credit to Duplex (duplexsystem) for creating most of the fast scalar ilog stuff
 
@@ -37,8 +36,6 @@ macro_rules! unsigned_impl {
                 for i in 0..power_count {
                     power_table[i] = (COEFF as $u).pow(i as u32);
                 }
-
-                let index = self as usize;
 
                 *power_table.get_unchecked(self as usize)
             }

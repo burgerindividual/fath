@@ -120,8 +120,8 @@ macro_rules! unsigned_impl {
 
                         let pow_vec = Simd::from_slice(&pow_array[..pow_count as usize]);
 
-                        DynamicSwizzle::<$u, 8, LANES>::
-                            dyn_swizzle_unchecked(pow_vec, self.cast::<$s>())
+                        pow_vec
+                            .dyn_swizzle_unchecked(self.cast::<$s>())
                             .unwrap_or_else(|| {
                                 let bit_count = pow_count_pow_2.ilog2();
 
