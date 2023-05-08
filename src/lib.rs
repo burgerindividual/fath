@@ -6,5 +6,5 @@ pub mod shared;
 // #![cfg_attr(feature = "portable_simd", feature(portable_simd))]
 pub mod simd;
 
-// #[cfg(test)]
+#[cfg(test)]
 pub mod test;
