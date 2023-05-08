@@ -19,6 +19,7 @@ Most of the functions in here are faster than equivalent functions in sleef, at 
 Allows setting a variable precision level as a `const` generic.
 * `sin` and `cos`
   * Does include wrapping with a range reduction, but will become less accurate as the input gets larger.
+  * Includes equivalent functions without a range reduction
 * `log` (`const` base and variable base)
   * This is based on a log base 2 approximation, and is scaled for other bases. The fastest version of this is `const` base 2.0.
 
