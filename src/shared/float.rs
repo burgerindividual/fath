@@ -2,10 +2,31 @@ use core::f32::consts::*;
 use core::intrinsics::*;
 
 pub trait FastApproxFloat {
+    /// # Safety
+    /// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
     unsafe fn sin_fast_approx<const PRECISION: usize>(self) -> Self;
+    /// # Safety
+    /// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
     unsafe fn cos_fast_approx<const PRECISION: usize>(self) -> Self;
 
+    /// # Safety
+    /// Inputs valid between [-1/2, 1/2]. The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
+    unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(self) -> Self;
+    /// # Safety
+    /// Inputs valid between [-1/2, 1/2]. The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
+    unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(self) -> Self;
+
+    /// # Safety
+    /// Inputs valid between (0, Infinity). The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
     unsafe fn log_fast_approx<const PRECISION: usize>(self, base: Self) -> Self;
+    /// # Safety
+    /// Inputs valid between (0, Infinity). The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
     unsafe fn log_fast_approx_const_base<const PRECISION: usize>(self, base: Self) -> Self;
 }
 
@@ -37,14 +58,6 @@ pub trait FastApproxFloat {
 /// https://publik-void.github.io/sin-cos-approximations/#_cos_abs_error_minimized_degree_2
 #[inline(always)]
 pub(crate) unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x: f32) -> f32 {
-    let pi_multiples = fadd_fast(
-        fmul_fast(x, FRAC_1_PI),
-        if COS { 0.0_f32 } else { -0.5_f32 },
-    );
-    let rounded_multiples = nearbyintf32(pi_multiples);
-    let pi_fraction = pi_multiples - rounded_multiples;
-    let fraction_squared = pi_fraction * pi_fraction;
-
     let coeffs: &[f32] = match PRECISION {
         0 => &[-4.0_f32, 0.9719952_f32],
         1 => &[3.5838444_f32, -4.8911867_f32, 0.99940324_f32],
@@ -59,13 +72,82 @@ pub(crate) unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x:
         _ => unreachable!(),
     };
 
-    let mut output = coeffs[0];
+    let pi_multiples = fadd_fast(
+        fmul_fast(x, FRAC_1_PI),
+        if COS { 0.0_f32 } else { -0.5_f32 },
+    );
+    let rounded_multiples = nearbyintf32(pi_multiples);
+    let pi_fraction = pi_multiples - rounded_multiples;
+    let fraction_squared = pi_fraction * pi_fraction;
+
+    let mut polynomial_eval = coeffs[0];
     for &coeff in &coeffs[1..] {
-        output = fadd_fast(fmul_fast(fraction_squared, output), coeff);
+        polynomial_eval = fadd_fast(fmul_fast(fraction_squared, polynomial_eval), coeff);
     }
 
     let parity_sign = (rounded_multiples.to_int_unchecked::<i32>() as u32) << 31_u32;
-    f32::from_bits(output.to_bits() ^ parity_sign)
+    f32::from_bits(polynomial_eval.to_bits() ^ parity_sign)
+}
+
+pub(crate) unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+    let coeffs: &[f32] = match PRECISION {
+        0 => &[-0.40528473_f32, 0.9719952_f32],
+        1 => &[0.036791682_f32, -0.49558085_f32, 0.99940324_f32],
+        2 => &[
+            -0.0012712094_f32,
+            0.04148775_f32,
+            -0.49991244_f32,
+            0.9999933_f32,
+        ],
+        3 => &[
+            2.3153932e-5_f32,
+            -0.0013853704_f32,
+            0.041663583_f32,
+            -0.49999905_f32,
+            0.99999994_f32,
+        ],
+        _ => unreachable!(),
+    };
+
+    let x_squared = x * x;
+
+    let mut polynomial_eval = coeffs[0];
+    for &coeff in &coeffs[1..] {
+        polynomial_eval = fadd_fast(fmul_fast(x_squared, polynomial_eval), coeff);
+    }
+
+    polynomial_eval
+}
+
+pub(crate) unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+    let coeffs: &[f32] = match PRECISION {
+        0 => &[-0.14256673_f32, 0.98552954_f32],
+        1 => &[0.007514377_f32, -0.16567308_f32, 0.9996968_f32],
+        2 => &[
+            -0.00018363654_f32,
+            0.008306325_f32,
+            -0.16664828_f32,
+            0.9999966_f32,
+        ],
+        3 => &[
+            2.5904885e-6_f32,
+            -0.00019800897_f32,
+            0.0083329_f32,
+            -0.16666648_f32,
+            1.0_f32,
+        ],
+        _ => unreachable!(),
+    };
+
+    let x_squared = x * x;
+
+    let mut polynomial_eval = coeffs[0];
+    for &coeff in &coeffs[1..] {
+        polynomial_eval = fadd_fast(fmul_fast(x_squared, polynomial_eval), coeff);
+    }
+    polynomial_eval *= x;
+
+    polynomial_eval
 }
 
 #[inline(always)]
@@ -84,13 +166,9 @@ pub(crate) unsafe fn log_fast_approx<const PRECISION: usize>(x: f32, base: f32) 
     )
 }
 
+/// Expects input to be >= 0
 #[inline(always)]
 unsafe fn log2_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
-    let mantissa = f32::from_bits(
-        x.to_bits() & 0b00111111111111111111111111111111_u32
-            | 0b00111111100000000000000000000000_u32,
-    );
-
     let coeffs: &[f32] = match PRECISION {
         0 => &[-0.34484842_f32, 2.0246658_f32, -1.6748776_f32],
         1 => &[0.15824871_f32, -1.051875_f32, 3.0478842_f32, -2.1536207_f32],
@@ -112,9 +190,14 @@ unsafe fn log2_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
         _ => unreachable!(),
     };
 
+    let mantissa = f32::from_bits(
+        x.to_bits() & 0b00111111111111111111111111111111_u32
+            | 0b00111111100000000000000000000000_u32,
+    );
+
     let mut mant_log2 = coeffs[0];
-    for i in 1..coeffs.len() {
-        mant_log2 = fadd_fast(fmul_fast(mantissa, mant_log2), coeffs[i]);
+    for &coeff in &coeffs[1..] {
+        mant_log2 = fadd_fast(fmul_fast(mantissa, mant_log2), coeff);
     }
 
     let exponent = ((x.to_bits() >> 23_u32) as i32 - 127_i32) as f32;

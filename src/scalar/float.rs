@@ -12,6 +12,16 @@ impl FastApproxFloat for f32 {
     }
 
     #[inline(always)]
+    unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(self) -> f32 {
+        sin_ranged_fast_approx::<PRECISION>(self)
+    }
+
+    #[inline(always)]
+    unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(self) -> f32 {
+        cos_ranged_fast_approx::<PRECISION>(self)
+    }
+
+    #[inline(always)]
     unsafe fn log_fast_approx<const PRECISION: usize>(self, base: Self) -> Self {
         log_fast_approx::<PRECISION>(base, self)
     }
