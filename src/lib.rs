@@ -1,5 +1,5 @@
 #![feature(core_intrinsics, portable_simd, array_zip)]
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 pub mod scalar;
 pub mod shared;
