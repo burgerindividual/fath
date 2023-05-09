@@ -10,8 +10,10 @@ This library *heavily* relies on unsafe and nightly features to achieve the best
 
 When using SIMD functions in this package, compile with `lto="fat"` or `lto="thin"` and `opt-level=3` to ensure that auto-vectorization takes place. All SIMD functions have a feature cap at AVX2, and nothing in this library utilizes anything from AVX512. If certain functions vectorize on lower requirements, that's a bonus.
 
+## Comparison to [sleef-rs](https://github.com/burrbull/sleef-rs)
 Most of the functions in here are faster than equivalent functions in sleef, at the expense of safety.
-(TODO: add comparison to sleef_rs)
+
+![Benchmarks (zen 3, lto= fat , opt-level=3, target-cpu=native)](https://user-images.githubusercontent.com/30326913/237006043-1c9f0e03-e0f1-4897-bb08-ee8cf95f8fd9.svg)
 
 ## Currently Implemented Functions
 **Approximate `f32` Functions:**
