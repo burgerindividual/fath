@@ -13,11 +13,11 @@ When using SIMD functions in this package, compile with `lto="fat"` or `lto="thi
 ## Comparison to [sleef-rs](https://github.com/burrbull/sleef-rs)
 Most of the functions in here are faster than equivalent functions in sleef, at the expense of safety.
 
-Sleef's `sin_fast` and `cos_fast` are slightly less precise than fath's `sin_fast_approx::<3>`. The main performance detriment to sleef's is the branch that happens in it when it's outside the range of being within 350 ULPs. However, fath also includes additional optimizations for it. Sleef's `log2_u35` function is its fastest log2 implementation, and is much more accurate than fath's, being withing 3.5 ULPs. Fath is much less accurate, but achieves much better performance due to additional optimizations and less polynomial approximation iterations.
+Sleef's `sin_fast` and `cos_fast` are slightly less precise than fath's `sin_fast_approx::<3>`. The main performance detriment to sleef's is the branch that happens in it when it's outside the range of being within 350 ULPs. However, fath also includes additional optimizations for it. Sleef's `log2_u35` and `ln_u35` functions are its fastest implementations, and are much more accurate than fath's, being withing 3.5 ULPs. Fath is much less accurate, but achieves much better performance due to additional optimizations and less strict precision requirements.
 
 "Cycles per Op" in this chart is calculated from the average cycles per 8-lane function iteration, divided by 8. This simulates a best-case scenario of maximum throughput.
 
-![Benchmarks (Ryzen 5 5600x, lto=_fat_, opt-level=3, target-cpu=native)](https://github.com/burgerindividual/fath/assets/30326913/a621167a-baaf-4042-b2c8-333b35e608a0)
+![Benchmarks (Ryzen 5 5600x, lto= fat , opt-level=3, target-cpu=native)](https://github.com/burgerindividual/fath/assets/30326913/47ee1cba-daee-48c5-89dd-729d8c955bb7)
 
 ## Currently Implemented Functions
 **Approximate `f32` Functions:**
