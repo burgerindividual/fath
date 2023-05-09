@@ -10,8 +10,14 @@ This library *heavily* relies on unsafe and nightly features to achieve the best
 
 When using SIMD functions in this package, compile with `lto="fat"` or `lto="thin"` and `opt-level=3` to ensure that auto-vectorization takes place. All SIMD functions have a feature cap at AVX2, and nothing in this library utilizes anything from AVX512. If certain functions vectorize on lower requirements, that's a bonus.
 
+## Comparison to [sleef-rs](https://github.com/burrbull/sleef-rs)
 Most of the functions in here are faster than equivalent functions in sleef, at the expense of safety.
-(TODO: add comparison to sleef_rs)
+
+Sleef's `sin_fast` and `cos_fast` are slightly less precise than fath's `sin_fast_approx::<3>`. The main performance detriment to sleef's is the branch that happens in it when it's outside the range of being within 350 ULPs. However, fath also includes additional optimizations for it. Sleef's `log2_u35` function is its fastest log2 implementation, and is much more accurate than fath's, being withing 3.5 ULPs. Fath is much less accurate, but achieves much better performance due to additional optimizations and less polynomial approximation iterations.
+
+"Cycles per Op" in this chart is calculated from the average cycles per 8-lane function iteration, divided by 8. This simulates a best-case scenario of maximum throughput.
+
+![Benchmarks (Ryzen 5 5600x, lto=_fat_, opt-level=3, target-cpu=native)](https://github.com/burgerindividual/fath/assets/30326913/a621167a-baaf-4042-b2c8-333b35e608a0)
 
 ## Currently Implemented Functions
 **Approximate `f32` Functions:**
