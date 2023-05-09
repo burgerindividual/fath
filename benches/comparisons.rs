@@ -36,7 +36,7 @@ fn log2_benchmarks(c: &mut Criterion<CyclesPerByte>) {
         b.iter(|| unsafe { (black_box(f32x8::splat(0.0_f32))).log2_fast_approx::<0>() })
     });
     c.bench_function("fath f32x8 log2 precision: 3 range-reduced: true", |b| {
-        b.iter(|| unsafe { (black_box(f32x8::splat(0.0_f32))).log2_fast_approx::<0>() })
+        b.iter(|| unsafe { (black_box(f32x8::splat(0.0_f32))).log2_fast_approx::<3>() })
     });
     c.bench_function("sleef f32x8 log2 3.5 ULP range-reduced: true", |b| {
         b.iter(|| log2_u35(black_box(f32x8::splat(0.0_f32))))
@@ -48,7 +48,7 @@ fn ln_benchmarks(c: &mut Criterion<CyclesPerByte>) {
         b.iter(|| unsafe { (black_box(f32x8::splat(0.0_f32))).ln_fast_approx::<0>() })
     });
     c.bench_function("fath f32x8 ln precision: 3 range-reduced: true", |b| {
-        b.iter(|| unsafe { (black_box(f32x8::splat(0.0_f32))).ln_fast_approx::<0>() })
+        b.iter(|| unsafe { (black_box(f32x8::splat(0.0_f32))).ln_fast_approx::<3>() })
     });
     c.bench_function("sleef f32x8 ln 3.5 ULP range-reduced: true", |b| {
         b.iter(|| (black_box(f32x8::splat(0.0_f32))).ln())
