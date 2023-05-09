@@ -17,5 +17,9 @@ lto = "thin"
 
 [profile.release]
 opt-level = 3
-# for some reason, LTO kills auto-vectorization here.
-# lto = "fat"
+lto = "fat"
+
+[profile.asm]
+inherits = "release"
+# LTO will kill optimization when inspecting the assembly of unused functions
+lto = false
