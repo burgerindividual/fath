@@ -1,6 +1,5 @@
 // Adapted from here:
 // https://github.com/dmoulding/log2fix/blob/8955391773b666c12c03dfbdfa9707e298a42ae1/log2fix.c#L9
-#[macro_export]
 macro_rules! ilog_mul_shift {
     ($u:ty,$base:ident) => {{
         let numerator: $u = (<$u>::MAX / (<$u>::MAX.ilog2() as $u + 1)) + 1;
@@ -34,3 +33,5 @@ macro_rules! ilog_mul_shift {
         (multiplier, shift)
     }};
 }
+
+pub(crate) use ilog_mul_shift;

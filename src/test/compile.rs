@@ -11,7 +11,7 @@ pub fn ilog_const_base_test(x: u32x8) -> u32x8 {
 #[inline(never)]
 #[allow(dead_code)]
 pub fn cos_ranged_test(x: f32x8) -> f32x8 {
-    unsafe { x.cos_ranged_fast_approx::<0>() }
+    unsafe { x.cos_restrict_fast_approx::<0>() }
 }
 
 #[inline(never)]

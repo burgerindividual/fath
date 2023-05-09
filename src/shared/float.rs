@@ -45,7 +45,7 @@ pub trait FastApproxFloat {
     /// # Safety
     /// Inputs valid between [-PI/2, PI/2]. The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
-    unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(self) -> Self;
+    unsafe fn sin_restrict_fast_approx<const PRECISION: usize>(self) -> Self;
     /// # Inputs
     /// Precision can set between 0 and 3, with 0 being the fastest and least
     /// precise, and 3 being the slowest and most precise.
@@ -53,16 +53,34 @@ pub trait FastApproxFloat {
     /// # Safety
     /// Inputs valid between [-PI/2, PI/2]. The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
-    unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(self) -> Self;
+    unsafe fn cos_restrict_fast_approx<const PRECISION: usize>(self) -> Self;
 
     /// # Safety
     /// Inputs valid between (0, Infinity). The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
-    unsafe fn log_fast_approx<const PRECISION: usize>(self, base: Self) -> Self;
+    ///
+    /// # Notes
+    /// This is the fastest log function in the library, and is much faster than doing a
+    /// variable-base calculation with `2.0`.
+    unsafe fn log2_fast_approx<const PRECISION: usize>(self) -> Self;
     /// # Safety
     /// Inputs valid between (0, Infinity). The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
-    unsafe fn log_fast_approx_const_base<const PRECISION: usize>(self, base: Self) -> Self;
+    ///
+    /// # Notes
+    /// This function is faster than doing a variable-base calculation with `10.0`.
+    unsafe fn log10_fast_approx<const PRECISION: usize>(self) -> Self;
+    /// # Safety
+    /// Inputs valid between (0, Infinity). The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
+    ///
+    /// # Notes
+    /// This function is faster than doing a variable-base calculation with `E`.
+    unsafe fn ln_fast_approx<const PRECISION: usize>(self) -> Self;
+    /// # Safety
+    /// Inputs valid between (0, Infinity). The output of this function can differ based on
+    /// machine characteristics, and should not be used with equality testing.
+    unsafe fn log_fast_approx<const PRECISION: usize>(self, base: Self) -> Self;
 }
 
 #[inline(always)]
@@ -98,7 +116,7 @@ pub(crate) unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x:
     f32::from_bits(polynomial_eval.to_bits() ^ parity_sign)
 }
 
-pub(crate) unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+pub(crate) unsafe fn cos_restrict_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
     let coeffs: &[f32] = match PRECISION {
         0 => &[-0.40528473_f32, 0.9719952_f32],
         1 => &[0.036791682_f32, -0.49558085_f32, 0.99940324_f32],
@@ -128,7 +146,7 @@ pub(crate) unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(x: f32) -> f
     polynomial_eval
 }
 
-pub(crate) unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+pub(crate) unsafe fn sin_restrict_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
     let coeffs: &[f32] = match PRECISION {
         0 => &[-0.14256673_f32, 0.98552954_f32],
         1 => &[0.007514377_f32, -0.16567308_f32, 0.9996968_f32],
@@ -160,14 +178,6 @@ pub(crate) unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(x: f32) -> f
 }
 
 #[inline(always)]
-pub(crate) unsafe fn log_fast_approx_const_base<const PRECISION: usize>(x: f32, base: f32) -> f32 {
-    fdiv_fast(
-        log2_fast_approx::<PRECISION>(x),
-        log2f64(base as f64) as f32, // f64::log2 not included in core, have to use intrinsic
-    )
-}
-
-#[inline(always)]
 pub(crate) unsafe fn log_fast_approx<const PRECISION: usize>(x: f32, base: f32) -> f32 {
     fdiv_fast(
         log2_fast_approx::<PRECISION>(x),
@@ -175,9 +185,18 @@ pub(crate) unsafe fn log_fast_approx<const PRECISION: usize>(x: f32, base: f32) 
     )
 }
 
-/// Expects input to be >= 0
 #[inline(always)]
-unsafe fn log2_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+pub(crate) unsafe fn ln_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+    log2_fast_approx::<PRECISION>(x) * LN_2
+}
+
+#[inline(always)]
+pub(crate) unsafe fn log10_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
+    log2_fast_approx::<PRECISION>(x) * LOG10_2
+}
+
+#[inline(always)]
+pub(crate) unsafe fn log2_fast_approx<const PRECISION: usize>(x: f32) -> f32 {
     let coeffs: &[f32] = match PRECISION {
         0 => &[-0.34484842_f32, 2.0246658_f32, -1.6748776_f32],
         1 => &[0.15824871_f32, -1.051875_f32, 3.0478842_f32, -2.1536207_f32],

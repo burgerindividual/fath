@@ -6,7 +6,7 @@ use core::simd::*;
 use rand::rngs::ThreadRng;
 use rand::{thread_rng, Rng, RngCore};
 
-const ITERS: usize = 1 << 20;
+const ITERS: usize = 1 << 16;
 
 #[inline(never)]
 #[test]

@@ -22,19 +22,34 @@ where
     }
 
     #[inline(always)]
-    unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(self) -> Self {
+    unsafe fn sin_restrict_fast_approx<const PRECISION: usize>(self) -> Self {
         Simd::from_array(
             self.to_array()
-                .map(|e| sin_ranged_fast_approx::<PRECISION>(e)),
+                .map(|e| sin_restrict_fast_approx::<PRECISION>(e)),
         )
     }
 
     #[inline(always)]
-    unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(self) -> Self {
+    unsafe fn cos_restrict_fast_approx<const PRECISION: usize>(self) -> Self {
         Simd::from_array(
             self.to_array()
-                .map(|e| cos_ranged_fast_approx::<PRECISION>(e)),
+                .map(|e| cos_restrict_fast_approx::<PRECISION>(e)),
         )
+    }
+
+    #[inline(always)]
+    unsafe fn log2_fast_approx<const PRECISION: usize>(self) -> Self {
+        Simd::from_array(self.to_array().map(|e| log2_fast_approx::<PRECISION>(e)))
+    }
+
+    #[inline(always)]
+    unsafe fn log10_fast_approx<const PRECISION: usize>(self) -> Self {
+        Simd::from_array(self.to_array().map(|e| log10_fast_approx::<PRECISION>(e)))
+    }
+
+    #[inline(always)]
+    unsafe fn ln_fast_approx<const PRECISION: usize>(self) -> Self {
+        Simd::from_array(self.to_array().map(|e| ln_fast_approx::<PRECISION>(e)))
     }
 
     #[inline(always)]
@@ -43,17 +58,6 @@ where
             self.to_array()
                 .zip(base.to_array())
                 .map(|(self_elem, base_elem)| log_fast_approx::<PRECISION>(self_elem, base_elem)),
-        )
-    }
-
-    #[inline(always)]
-    unsafe fn log_fast_approx_const_base<const PRECISION: usize>(self, base: Self) -> Self {
-        Simd::from_array(
-            self.to_array()
-                .zip(base.to_array())
-                .map(|(self_elem, base_elem)| {
-                    log_fast_approx_const_base::<PRECISION>(self_elem, base_elem)
-                }),
         )
     }
 }

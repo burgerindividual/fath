@@ -1,7 +1,7 @@
 [package]
 name = "fath"
 authors = [ "burgerindividual", "duplexsystem" ]
-version = "0.1.9"
+version = "0.2.0"
 edition = "2021"
 license = "LGPL-3.0"
 repository = "https://github.com/burgerindividual/fath"
@@ -9,7 +9,16 @@ description = "Math library built for speed. Includes configurable-precision app
 keywords = ["math", "no_std", "fast", "simd", "approximation"]
 
 [dev-dependencies]
+# Test
 rand = "0.8.5"
+# Bench
+criterion = { version = "0.4.0", features=["real_blackbox", "html_reports"] }
+criterion-cycles-per-byte = "0.4.0"
+sleef = "0.3.0"
+
+[[bench]]
+name = "comparisons"
+harness = false
 
 [profile.test]
 opt-level = 3
@@ -18,6 +27,9 @@ lto = "thin"
 [profile.release]
 opt-level = 3
 lto = "fat"
+
+[profile.bench]
+inherits = "release"
 
 [profile.asm]
 inherits = "release"

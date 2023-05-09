@@ -1,5 +1,5 @@
+use crate::shared::int::consts::ilog_mul_shift;
 use crate::shared::int::*;
-use crate::*;
 use core::intrinsics::*;
 
 // Credit to Duplex (duplexsystem) for creating most of the fast scalar ilog stuff

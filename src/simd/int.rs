@@ -1,6 +1,5 @@
 use crate::shared::int::*;
-use crate::*;
-
+use crate::simd::int::consts::ilog_mul_shift;
 use core::mem::size_of;
 use core::simd::*;
 
