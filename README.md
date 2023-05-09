@@ -1,4 +1,4 @@
-# fath ![crates.io](https://img.shields.io/crates/v/fath.svg)
+# fath [![crates.io](https://img.shields.io/crates/v/fath.svg)](https://crates.io/crates/fath)
 ### fa(st ma)th
 ### A math library written in Rust, built for speed.
 
