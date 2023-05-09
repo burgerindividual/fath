@@ -1,22 +1,57 @@
 use core::f32::consts::*;
 use core::intrinsics::*;
 
+/// Defines fast approximate functions for 32-bit floats. Outputs may differ based on platform, so
+/// nothing should be checked for equality. This is part of the reason why functions in here are
+/// marked as unsafe, because the behavior of these small floating point differences is undefined.
+///
+///
+/// Coefficient constants for the `sin` and `cos` functions were derived from here:
+/// https://publik-void.github.io/sin-cos-approximations/#_cos_abs_error_minimized_degree_2
+///
+///
+/// Other coefficients were generated from this Julia function:
+/// https://gist.github.com/burgerindividual/5f0ee20232f78c356df5767713ffad57
 pub trait FastApproxFloat {
+    /// # Inputs
+    /// Precision can set between 0 and 3, with 0 being the fastest and least
+    /// precise, and 3 being the slowest and most precise.
+    ///
     /// # Safety
     /// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
+    ///
+    /// # Notes
+    /// As the inputs get further from 0, the accuracy gets continuously worse
+    /// due to nature of the fast range reduction.
     unsafe fn sin_fast_approx<const PRECISION: usize>(self) -> Self;
+    /// # Inputs
+    /// Precision can set between 0 and 3, with 0 being the fastest and least
+    /// precise, and 3 being the slowest and most precise.
+    ///
     /// # Safety
     /// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
+    ///
+    /// # Notes
+    /// As the inputs get further from 0, the accuracy gets continuously worse
+    /// due to nature of the fast range reduction.
     unsafe fn cos_fast_approx<const PRECISION: usize>(self) -> Self;
 
+    /// # Inputs
+    /// Precision can set between 0 and 3, with 0 being the fastest and least
+    /// precise, and 3 being the slowest and most precise.
+    ///
     /// # Safety
-    /// Inputs valid between [-1/2, 1/2]. The output of this function can differ based on
+    /// Inputs valid between [-PI/2, PI/2]. The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
     unsafe fn sin_ranged_fast_approx<const PRECISION: usize>(self) -> Self;
+    /// # Inputs
+    /// Precision can set between 0 and 3, with 0 being the fastest and least
+    /// precise, and 3 being the slowest and most precise.
+    ///
     /// # Safety
-    /// Inputs valid between [-1/2, 1/2]. The output of this function can differ based on
+    /// Inputs valid between [-PI/2, PI/2]. The output of this function can differ based on
     /// machine characteristics, and should not be used with equality testing.
     unsafe fn cos_ranged_fast_approx<const PRECISION: usize>(self) -> Self;
 
@@ -30,32 +65,6 @@ pub trait FastApproxFloat {
     unsafe fn log_fast_approx_const_base<const PRECISION: usize>(self, base: Self) -> Self;
 }
 
-/// # Inputs
-/// Precision can set between 0 and 3, with 0 being the fastest and least
-/// precise, and 3 being the slowest and most precise.<br>
-/// #### Max Absolute Error Chart (from [-PI/2, PI/2]):
-///
-/// | PRECISION | ERROR  |
-/// | :-------- | :----- |
-/// | 0         | 2.9e-2 |
-/// | 1         | 6.0e-4 |
-/// | 2         | 6.9e-6 |
-/// | 3         | 2.7e-7 |
-///
-/// If COS is set to true, the period is offset by PI/2.
-///
-/// # Safety
-/// Inputs valid between [-2^23, 2^23]. The output of this function can differ based on
-/// machine characteristics, and should not be used with equality testing.
-///
-/// # Notes
-/// As the inputs get further from 0, the accuracy gets continuously worse
-/// due to nature of the fast range reduction.
-///
-/// This function should auto vectorize under LLVM with -Copt-level=3.
-///
-/// The coefficient constants were derived from the constants defined here:
-/// https://publik-void.github.io/sin-cos-approximations/#_cos_abs_error_minimized_degree_2
 #[inline(always)]
 pub(crate) unsafe fn sin_fast_approx<const PRECISION: usize, const COS: bool>(x: f32) -> f32 {
     let coeffs: &[f32] = match PRECISION {

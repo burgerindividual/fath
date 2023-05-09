@@ -5,12 +5,6 @@ use core::ops::Range;
 use core::simd::*;
 use rand::rngs::ThreadRng;
 use rand::{thread_rng, Rng, RngCore};
-// #[cfg(target_arch = "x86")]
-// #[allow(unused_imports)]
-// use core::arch::x86::*;
-// #[cfg(target_arch = "x86_64")]
-// #[allow(unused_imports)]
-// use core::arch::x86_64::*;
 
 const ITERS: usize = 1 << 20;
 
