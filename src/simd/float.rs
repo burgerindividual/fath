@@ -1,4 +1,5 @@
 use crate::shared::float::*;
+use core::array;
 use core::simd::*;
 
 impl<const LANES: usize> FastApproxFloat for Simd<f32, LANES>
@@ -54,10 +55,8 @@ where
 
     #[inline(always)]
     unsafe fn log_fast_approx<const PRECISION: usize>(self, base: Self) -> Self {
-        Simd::from_array(
-            self.to_array()
-                .zip(base.to_array())
-                .map(|(self_elem, base_elem)| log_fast_approx::<PRECISION>(self_elem, base_elem)),
-        )
+        Simd::from_array(array::from_fn(|i| {
+            log_fast_approx::<PRECISION>(self[i], base[i])
+        }))
     }
 }
