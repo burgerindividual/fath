@@ -25,6 +25,7 @@ pub fn scalar_error() {
         let approx_1 = unsafe { x.sin_fast_approx::<1>() };
         let approx_2 = unsafe { x.sin_fast_approx::<2>() };
         let approx_3 = unsafe { x.sin_fast_approx::<3>() };
+
         let exact = x.sin();
 
         assert!(
@@ -68,34 +69,14 @@ pub fn simd_error() {
         LaneCount<LANES>: SupportedLaneCount,
     {
         for _i in 0..ITERS {
-            let mut vec_uninit: core::mem::MaybeUninit<Simd<f32, LANES>> =
-                core::mem::MaybeUninit::uninit();
-            let vec_ptr = vec_uninit.as_mut_ptr();
-
-            for i in 0..LANES {
-                unsafe {
-                    (*vec_ptr)[i] = rng.gen_range(RANGE);
-                }
-            }
-
-            let x = unsafe { vec_uninit.assume_init() };
+            let x = Simd::from_array([0;LANES].map(|_| rng.gen_range(RANGE)));
 
             let approx_0 = unsafe { x.sin_fast_approx::<0>() };
             let approx_1 = unsafe { x.sin_fast_approx::<1>() };
             let approx_2 = unsafe { x.sin_fast_approx::<2>() };
             let approx_3 = unsafe { x.sin_fast_approx::<3>() };
 
-            let mut vec_uninit: core::mem::MaybeUninit<Simd<f32, LANES>> =
-                core::mem::MaybeUninit::uninit();
-            let vec_ptr = vec_uninit.as_mut_ptr();
-
-            for i in 0..LANES {
-                unsafe {
-                    (*vec_ptr)[i] = x[i].sin();
-                }
-            }
-
-            let exact = unsafe { vec_uninit.assume_init() };
+            let exact = Simd::from_array(x.to_array().map(|x| x.sin()));
 
             assert!(
                 (exact - approx_0)
@@ -157,31 +138,9 @@ pub fn simd_ilog_error() {
         LaneCount<LANES>: SupportedLaneCount,
     {
         for _i in 0..ITERS {
-            let mut vec_uninit: core::mem::MaybeUninit<Simd<u32, LANES>> =
-                core::mem::MaybeUninit::uninit();
-            let vec_ptr = vec_uninit.as_mut_ptr();
-
-            for i in 0..LANES {
-                unsafe {
-                    (*vec_ptr)[i] = rng.next_u32();
-                }
-            }
-
-            let x = unsafe { vec_uninit.assume_init() };
-
+            let x = Simd::from_array([0;LANES].map(|_| rng.next_u32()));
             let fast = unsafe { x.ilog_const_base_unchecked::<3>() };
-
-            let mut vec_uninit: core::mem::MaybeUninit<Simd<u32, LANES>> =
-                core::mem::MaybeUninit::uninit();
-            let vec_ptr = vec_uninit.as_mut_ptr();
-
-            for i in 0..LANES {
-                unsafe {
-                    (*vec_ptr)[i] = x[i].ilog(3);
-                }
-            }
-
-            let exact = unsafe { vec_uninit.assume_init() };
+            let exact = Simd::from_array(x.to_array().map(|x| x.ilog(3)));
 
             assert!(
                 exact.simd_eq(fast).all(),
@@ -193,6 +152,35 @@ pub fn simd_ilog_error() {
         }
     }
 }
+
+// #[derive(Clone, Copy, Default)]
+// struct Color(u32, u32, u32);
+//
+// #[inline(never)]
+// #[test]
+// pub fn mandelbrot_test() {
+//     use alloc::boxed::Box;
+//
+//     const SIZE: usize = 100;
+//     const ITERS: usize = 10;
+//     const COLOR_1: Color = Color(0, 255, 0);
+//     const COLOR_2: Color = Color(255, 0, 0);
+//     const ARRAY_LEN: usize = SIZE * SIZE;
+//
+//     const START_X: f32 = 0.0;
+//     const START_Y: f32 = 0.0;
+//     const END_X: f32 = 1.0;
+//     const END_Y: f32 = 1.0;
+//
+//     let color_array: Box<[Color;ARRAY_LEN]> = Box::new([Default::default();ARRAY_LEN]);
+//
+//     for y in 0..SIZE {
+//         let y_pos = START_X
+//         for x in 0..SIZE {
+//             let idx = y * SIZE + x;
+//         }
+//     }
+// }
 
 // /// Options:
 // /// --cfg print_values
